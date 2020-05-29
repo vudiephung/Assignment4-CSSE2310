@@ -20,22 +20,29 @@ typedef struct {
     Flight** flights;
 } MapData;
 
+int find_index_of_id(char* id, Flight** flights, int length) {
+    for (int i = 0; i < length; i++) {
+        if (!strcmp(id, flights[i]->id)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void handle_send(char* id, MapData* mapData, FILE* writeFile) {
     Flight** flights = mapData->flights;
     int numbersOfMapping = mapData->numbersOfMapping;
     if (is_valid_id(id)) {
         // Search for existing id
-        for (int i = 0; i < numbersOfMapping; i++) {
-            if (!strcmp(id, flights[i]->id)) {
-                fprintf(writeFile, "%s:%d\n", id, flights[i]->port);
-                fflush(writeFile);
-                return;
-            }
+        int index = find_index_of_id(id, flights, numbersOfMapping);
+        if (index != -1) {
+            fprintf(writeFile, "%s:%d\n", id, flights[index]->port);
+            fflush(writeFile);
+        } else {
+            fprintf(writeFile, ";\n");
+            fflush(writeFile);
         }
-        fprintf(writeFile, ";\n");
-        fflush(writeFile);
     } else {
-        // Neglect
         return;
     }
 }
@@ -52,12 +59,6 @@ void lexicographic_order(Flight** flights, int length) {
             }
         }
     }
-
-    // printf("\nIn the lexicographical order: \n");
-    // for (int i = 0; i < length; ++i) {
-    //     // fputs(flights[i]->id, stdout);
-    //     printf("%s\n", flights[i]->id);
-    // }
 }
 
 void handle_add(char* buffer, MapData* mapData) {
@@ -84,7 +85,8 @@ void handle_add(char* buffer, MapData* mapData) {
 
     // printf("; position: %d\n", semicolonPosition);
     if (is_valid_id(buffer) &&
-            is_valid_port(buffer + semicolonPosition + 1, &port)) {
+            is_valid_port(buffer + semicolonPosition + 1, &port) &&
+            find_index_of_id(id, mapData->flights, *numbersOfMapping) == -1) {
         // the allocated memory nearly full
         if (*numbersOfMapping + 2 > *capacity) {
             int biggerSize = (*capacity) + 10;
@@ -135,10 +137,6 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile) {
             break;
         case '!':
             handle_add(buffer + 1, mapData);
-            // for (int i = 0; i < mapData->numbersOfMapping; i++) {
-            //     fprintf(stdout, "id: %s port: %d\n", mapData->flights[i]->id, mapData->flights[i]->port);
-            // }
-            // printf("end\n");
             break;
         default:
             break;
@@ -220,5 +218,6 @@ int main(int argc, char** argv) {
     while (conn_fd = accept(serv, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
         handle_request(conn_fd, mapData);
     }
+
     return 0;
 }
