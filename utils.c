@@ -27,12 +27,15 @@ bool is_valid_port(char* port, int* portNumber) {
     return (*portNumber > 0 && *portNumber < maxPortValue);
 }
 
-bool read_line(FILE* file, char* buffer, int* size) {
+bool read_line(FILE* file, char* buffer, int* size, bool* sighubHappen) {
     int count = 0;
     buffer[0] = '\0';
     int next;
 
     while (true) {
+        // if (*sighubHappen == true) {
+        //     return false;
+        // }
         next = fgetc(file);
         if (next == EOF || next == '\n') {
             buffer[count] = '\0';

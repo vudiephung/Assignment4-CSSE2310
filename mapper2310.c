@@ -79,7 +79,6 @@ void lexicographic_order(Flight** flights, int length) {
 void handle_add(char* buffer, MapData* mapData) {
     int* numbersOfMapping = &mapData->numbersOfMapping;
     int* capacity = &mapData->capacity;
-    // Flight** flights = mapData->flights;
     int semicolonPosition;
     int port;
 
@@ -200,29 +199,29 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
 // }
 
 void* handle_request(void* threadData) {
-        ThreadData* myThreadData = (ThreadData*)threadData;
-        int conn_fd = myThreadData->conn_fd;
-        MapData* mapData = myThreadData->mapData;
-        sem_t* lock = myThreadData->lock;
+    ThreadData* myThreadData = (ThreadData*)threadData;
+    int conn_fd = myThreadData->conn_fd;
+    MapData* mapData = myThreadData->mapData;
+    sem_t* lock = myThreadData->lock;
 
-        FILE* readFile = fdopen(conn_fd, "r");
-        FILE* writeFile = fdopen(conn_fd, "w");
-        char* buffer = malloc(sizeof(char) * defaultBufferSize);
+    FILE* readFile = fdopen(conn_fd, "r");
+    FILE* writeFile = fdopen(conn_fd, "w");
+    char* buffer = malloc(sizeof(char) * defaultBufferSize);
 
-        // Get command
-        while (true) {
-            if (read_line(readFile, buffer, &defaultBufferSize)) {
-                handle_command(buffer, mapData, writeFile, lock);
-            } else {
-                // printf("Disconnected\n");
-                break;
-            }
+    // Get command
+    while (true) {
+        if (read_line(readFile, buffer, &defaultBufferSize)) {
+            handle_command(buffer, mapData, writeFile, lock);
+        } else {
+            // printf("Disconnected\n");
+            break;
         }
+    }
 
-        // clean up
-        free(buffer);
-        fclose(readFile);
-        fclose(writeFile);
+    // clean up
+    free(buffer);
+    fclose(readFile);
+    fclose(writeFile);
 
     return 0;
 }
@@ -252,7 +251,6 @@ int main(int argc, char** argv) {
     mapData->flights = flights;
 
     pthread_t threadId;
-
     ThreadData* threadData = malloc(sizeof(ThreadData));
 
     while (conn_fd = accept(server, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
