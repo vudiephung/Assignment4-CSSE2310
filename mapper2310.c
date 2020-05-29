@@ -56,14 +56,20 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
 }
 
 void lexicographic_order(Flight** flights, int length) {
-    char tempBuffer[defaultBufferSize];
+    char tempBufferId[defaultBufferSize];
+    int tempPort;
     for (int i = 0; i < length; i++) {
         for (int j = i + 1; j < length; j++) {
             //swapping strings if they are not in the lexicographical order
             if (strcmp((flights[i]->id), (flights[j]->id)) > 0) {
-                strcpy(tempBuffer, (flights[i]->id));
+                strcpy(tempBufferId, (flights[i]->id));
+                tempPort = flights[i]->port;
+
                 strcpy((flights[i]->id), (flights[j]->id));
-                strcpy((flights[j]->id), tempBuffer);
+                flights[i]->port = flights[j]->port;
+
+                strcpy((flights[j]->id), tempBufferId);
+                flights[j]->port = tempPort;
             }
         }
     }
