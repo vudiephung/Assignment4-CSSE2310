@@ -32,8 +32,8 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
                 return;
             }
         }
-
-        fprintf(stdout, ";\n");
+        fprintf(writeFile, ";\n");
+        fflush(writeFile);
     } else {
         // Neglect
         return;
@@ -184,20 +184,7 @@ int set_up(void) {
     return serv;
 }
 
-int main(int argc, char** argv) {
-    int serv = set_up();
-    int conn_fd;
-
-    // Set up Struct
-    int capacity = 10;
-    MapData* mapData = malloc(sizeof(MapData));
-    Flight** flights = malloc(sizeof(Flight*) * capacity);
-    mapData->capacity = capacity;
-    mapData->numbersOfMapping = 0;
-    mapData->flights = flights;
-
-    while (conn_fd = accept(serv, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
-        // Setup
+void handle_request(int conn_fd, MapData* mapData) {
         FILE* readFile = fdopen(conn_fd, "r");
         FILE* writeFile = fdopen(conn_fd, "w");
         char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -216,6 +203,22 @@ int main(int argc, char** argv) {
         free(buffer);
         fclose(readFile);
         fclose(writeFile);
+}
+
+int main(int argc, char** argv) {
+    int serv = set_up();
+    int conn_fd;
+
+    // Set up Struct
+    int capacity = 10;
+    MapData* mapData = malloc(sizeof(MapData));
+    Flight** flights = malloc(sizeof(Flight*) * capacity);
+    mapData->capacity = capacity;
+    mapData->numbersOfMapping = 0;
+    mapData->flights = flights;
+
+    while (conn_fd = accept(serv, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
+        handle_request(conn_fd, mapData);
     }
     return 0;
 }
