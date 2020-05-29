@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "utils.h"
 
 int defaultBufferSize = 80;
@@ -19,6 +20,11 @@ typedef struct {
     int capacity;
     Flight** flights;
 } MapData;
+
+typedef struct {
+    int conn_fd;
+    MapData* mapData;
+} ThreadData;
 
 int find_index_of_id(char* id, Flight** flights, int length) {
     for (int i = 0; i < length; i++) {
@@ -182,7 +188,10 @@ int set_up(void) {
     return serv;
 }
 
-void handle_request(int conn_fd, MapData* mapData) {
+void* handle_request(void* threadData) {
+        ThreadData* myThreadData = (ThreadData*)threadData;
+        int conn_fd = myThreadData->conn_fd;
+        MapData* mapData = myThreadData->mapData;
         FILE* readFile = fdopen(conn_fd, "r");
         FILE* writeFile = fdopen(conn_fd, "w");
         char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -201,6 +210,8 @@ void handle_request(int conn_fd, MapData* mapData) {
         free(buffer);
         fclose(readFile);
         fclose(writeFile);
+
+    return 0;
 }
 
 int main(int argc, char** argv) {
@@ -215,8 +226,15 @@ int main(int argc, char** argv) {
     mapData->numbersOfMapping = 0;
     mapData->flights = flights;
 
+    pthread_t threadId;
+
+    ThreadData* threadData = malloc(sizeof(ThreadData));
+
     while (conn_fd = accept(serv, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
-        handle_request(conn_fd, mapData);
+        threadData->conn_fd = conn_fd;
+        threadData->mapData = mapData;
+        pthread_create(&threadId, 0, handle_request, (void*)threadData);
+        // handle_request(conn_fd, mapData);
     }
 
     return 0;

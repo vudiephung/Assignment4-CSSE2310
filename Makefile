@@ -4,7 +4,7 @@ CFLAGS = -Wall -pedantic -g -std=gnu99
 all: mapper2310
 
 mapper2310: utils.o mapper2310.o
-	gcc $(CFLAGS) -o mapper2310 utils.o mapper2310.o
+	gcc $(CFLAGS) -pthread -o mapper2310 utils.o mapper2310.o
 
 mapper2310.o: mapper2310.c
 	gcc $(CFLAGS) -c mapper2310.c
