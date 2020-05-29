@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include "utils.h"
 
 int defaultBufferSize = 80;
@@ -24,6 +25,7 @@ typedef struct {
 typedef struct {
     int conn_fd;
     MapData* mapData;
+    sem_t* lock;
 } ThreadData;
 
 int find_index_of_id(char* id, Flight** flights, int length) {
@@ -89,7 +91,6 @@ void handle_add(char* buffer, MapData* mapData) {
         id[i] = buffer[i];
     }
 
-    // printf("; position: %d\n", semicolonPosition);
     if (is_valid_id(buffer) &&
             is_valid_port(buffer + semicolonPosition + 1, &port) &&
             find_index_of_id(id, mapData->flights, *numbersOfMapping) == -1) {
@@ -101,7 +102,7 @@ void handle_add(char* buffer, MapData* mapData) {
                     sizeof(Flight*) * biggerSize);
             if (newFlights == 0) {
                 // !!!!!!!!!!!
-                printf("cannot allcocate\n");
+                // printf("cannot allcocate\n");
                 return;
             }
             *capacity = biggerSize;
@@ -117,7 +118,7 @@ void handle_add(char* buffer, MapData* mapData) {
         // Sort in lexicographic order
         lexicographic_order(mapData->flights, *numbersOfMapping);
     } else {
-        printf("Invalid Message\n");
+        // printf("Invalid Message\n");
         return;
     }
 }
@@ -131,7 +132,8 @@ void send_list(MapData* mapData, FILE* writeFile) {
     }
 }
 
-void handle_command(char* buffer, MapData* mapData, FILE* writeFile) {
+void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
+        sem_t* lock) {
     // printf("Buffer: %s\n", buffer);
     if (!strcmp(buffer, "@")) {
         send_list(mapData, writeFile);
@@ -142,7 +144,9 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile) {
             handle_send(buffer + 1, mapData, writeFile);
             break;
         case '!':
+            sem_wait(lock);
             handle_add(buffer + 1, mapData);
+            sem_post(lock);
             break;
         default:
             break;
@@ -192,6 +196,8 @@ void* handle_request(void* threadData) {
         ThreadData* myThreadData = (ThreadData*)threadData;
         int conn_fd = myThreadData->conn_fd;
         MapData* mapData = myThreadData->mapData;
+        sem_t* lock = myThreadData->lock;
+
         FILE* readFile = fdopen(conn_fd, "r");
         FILE* writeFile = fdopen(conn_fd, "w");
         char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -199,7 +205,7 @@ void* handle_request(void* threadData) {
         // Get command
         while (true) {
             if (read_line(readFile, buffer, &defaultBufferSize)) {
-                handle_command(buffer, mapData, writeFile);
+                handle_command(buffer, mapData, writeFile, lock);
             } else {
                 // printf("Disconnected\n");
                 break;
@@ -217,6 +223,8 @@ void* handle_request(void* threadData) {
 int main(int argc, char** argv) {
     int serv = set_up();
     int conn_fd;
+    sem_t lock;
+    sem_init(&lock, 0, 1);
 
     // Set up Struct
     int capacity = 10;
@@ -233,9 +241,10 @@ int main(int argc, char** argv) {
     while (conn_fd = accept(serv, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
         threadData->conn_fd = conn_fd;
         threadData->mapData = mapData;
+        threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);
-        // handle_request(conn_fd, mapData);
     }
 
+    sem_destroy(&lock);
     return 0;
 }
