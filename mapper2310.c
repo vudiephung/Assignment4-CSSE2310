@@ -45,7 +45,7 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
         // Search for existing id
         int index = find_index_of_id(id, flights, numbersOfMapping);
         if (index != -1) {
-            fprintf(writeFile, "%s:%d\n", id, flights[index]->port);
+            fprintf(writeFile, "%d\n", flights[index]->port);
             fflush(writeFile);
         } else {
             fprintf(writeFile, ";\n");

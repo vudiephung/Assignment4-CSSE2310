@@ -13,7 +13,7 @@ int set_up(const char* port) {
         hints.ai_flags = AI_PASSIVE; // Because we want to bind with it    
     }
     int err;
-    if ((err = getaddrinfo("localhost", port, &hints, &ai))) { // no particular port
+    if ((err = getaddrinfo("localhost", port, &hints, &ai))) {
         freeaddrinfo(ai);
         fprintf(stderr, "%s\n", gai_strerror(err));
         return 1; // could not work out the address
@@ -23,7 +23,8 @@ int set_up(const char* port) {
     int serv = socket(AF_INET, SOCK_STREAM, 0); // 0 == use default protocol
 
     if (!port) { // server
-        if (bind(serv, (struct sockaddr*)ai->ai_addr, sizeof(struct sockaddr))) {
+        if (bind(serv, (struct sockaddr*)ai->ai_addr,
+                sizeof(struct sockaddr))) {
             // perror("Binding");
             // return 3;
         }

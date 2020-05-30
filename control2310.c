@@ -23,6 +23,7 @@ typedef struct {
 } MapperArgs;
 
 typedef struct {
+    char* info;
     int capacity;
     int numberOfPlanes;
     char** planes;
@@ -35,18 +36,15 @@ typedef struct {
 } ThreadData;
 
 typedef enum {
-    OK = 0,
     NUMS_OF_ARGS = 1,
     INVALID_CHAR = 2,
     INVALID_PORT = 3,
-    INVALID_MAP = 4
+    INVALID_MAPPER = 4
 } Error;
 
 Error handle_error_message(Error type) {
     const char* errorMessage = "";
     switch (type) {
-        case OK:
-            return OK;
         case NUMS_OF_ARGS:
             errorMessage = "Usage: control2310 id info [mapper]";
             break;
@@ -56,7 +54,7 @@ Error handle_error_message(Error type) {
         case INVALID_PORT:
             errorMessage = "Invalid port";
             break;
-        case INVALID_MAP:
+        case INVALID_MAPPER:
             errorMessage = "Can not connect to map";
             break;
         default:
@@ -74,15 +72,16 @@ void* handle_client_job(void* data) {
 
     int client = set_up(mapperPort); // set up as client connect to mapperPort
     if (!client) {
-        exit(handle_error_message(INVALID_MAP));
+        exit(handle_error_message(INVALID_MAPPER));
     }
 
     FILE* writeFile = fdopen(client, "w");
-    
+
     fprintf(writeFile, "!%s:%s\n", id, controlPort);
     fflush(writeFile);
 
     // close the connection
+    fclose(writeFile);
     close(client);
 
     return 0;
@@ -145,6 +144,9 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     }
     sem_wait(lock);
     handle_add(buffer, controlData);
+    // send back info
+    fprintf(writeFile, "%s\n", controlData->info);
+    fflush(writeFile);
     sem_post(lock);
 }
 
@@ -214,13 +216,13 @@ int main(int argc, char** argv) {
             return handle_error_message(INVALID_PORT);
         }
         // Client
-        MapperArgs* controlData = malloc(sizeof(controlData));
-        controlData->id = id;
-        controlData->controlPort = number_to_string(controlPort);
-        controlData->mapperPort = argv[3];
+        MapperArgs* mapperArgs = malloc(sizeof(mapperArgs));
+        mapperArgs->id = id;
+        mapperArgs->controlPort = number_to_string(controlPort);
+        mapperArgs->mapperPort = argv[3];
 
         pthread_t threadId;
-        pthread_create(&threadId, 0, handle_client_job, (void*)controlData);
+        pthread_create(&threadId, 0, handle_client_job, (void*)mapperArgs);
         pthread_join(threadId, 0);
     }
 
@@ -229,6 +231,7 @@ int main(int argc, char** argv) {
     ControlData* controlData = malloc(sizeof(ControlData));
     int capacity = 10;
     char** planes = malloc(sizeof(char*) * capacity);
+    controlData->info = info;
     controlData->capacity = capacity;
     controlData->numberOfPlanes = 0;
     controlData->planes = planes;
