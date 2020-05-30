@@ -65,10 +65,10 @@ Error handle_error_message(Error type) {
 }
 
 void* handle_client_job(void* data) {
-    MapperArgs* controlData = (MapperArgs*)data;
-    char* id = controlData->id;
-    char* controlPort = controlData->controlPort;
-    char* mapperPort = controlData->mapperPort;
+    MapperArgs* mapperArgs = (MapperArgs*)data;
+    char* id = mapperArgs->id;
+    char* controlPort = mapperArgs->controlPort;
+    char* mapperPort = mapperArgs->mapperPort;
 
     int client = set_up(mapperPort); // set up as client connect to mapperPort
     if (!client) {
