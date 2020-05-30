@@ -35,8 +35,7 @@ int set_up(const char* port) {
     } else { // client
         if (connect(serv, (struct sockaddr*)ai->ai_addr,
                 sizeof(struct sockaddr))) {
-            // perror("Connecting");
-            // return 3;
+            return 0;
         }
     }
 

@@ -52,10 +52,13 @@ Error handle_error_message(Error type) {
             break;
         case INVALID_CHAR:
             errorMessage = "Invalid char in parameter";
+            break;
         case INVALID_PORT:
             errorMessage = "Invalid port";
+            break;
         case INVALID_MAP:
             errorMessage = "Can not connect to map";
+            break;
         default:
             break;
     }
@@ -70,10 +73,7 @@ void* handle_client_job(void* data) {
     char* mapperPort = controlData->mapperPort;
 
     int client = set_up(mapperPort); // set up as client connect to mapperPort
-
-    FILE* readFile = fdopen(client, "r");
-    
-    if (fgetc(readFile) == EOF) {
+    if (!client) {
         exit(handle_error_message(INVALID_MAP));
     }
 
@@ -160,12 +160,16 @@ void* handle_request(void* data) {
 
     // Get command
     while (true) {
+        // if (sighupHappen) {
+        //     break;
+        // }
         if (read_line(readFile, buffer, &defaultBufferSize, &sighupHappen)) {
             handle_command(buffer, controlData, writeFile, lock);
         } else {
             break;
         }
     }
+
     // clean up
     free(buffer);
     fclose(readFile);
@@ -191,8 +195,6 @@ int main(int argc, char** argv) {
     if (!is_valid_id(id) || !is_valid_id(info)) {
         return handle_error_message(INVALID_CHAR);
     }
-
-    // error 4?
 
     // Server
     int conn_fd;
@@ -227,9 +229,6 @@ int main(int argc, char** argv) {
     ControlData* controlData = malloc(sizeof(ControlData));
     int capacity = 10;
     char** planes = malloc(sizeof(char*) * capacity);
-    // for (int i = 0; i < capacity; i++) {
-    //     planes[i] = malloc(sizeof(char) * defaultBufferSize);
-    // }
     controlData->capacity = capacity;
     controlData->numberOfPlanes = 0;
     controlData->planes = planes;
