@@ -59,6 +59,7 @@ int main(int argc, char** argv) {
     // Get args
     char* planeId = argv[1];
     char* mapperPort = argv[2];
+    bool mapperRequired = false;
     // if (!is_valid_port(mapperPort, 0) && strcmp(mapperPort, "-")) {
     //     return handle_error_message(INVALID_MAPPER);
     // }
@@ -97,6 +98,9 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numOfDestinations; i++) {
             char* destination = rocData->destinations[i];
             if (!is_valid_port(destination, 0)) {
+                if (!mapperRequired) {
+                    mapperRequired = true;
+                }
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -115,20 +119,25 @@ int main(int argc, char** argv) {
         close(client);
 
     } else {
-        if (strcmp(mapperPort, "-")) {
+        if (!strcmp(mapperPort, "-")) {
+            if (mapperRequired) {
+                exit(handle_error_message(MAPPER_REQUIRED));
+            }
+        } else {
             exit(handle_error_message(INVALID_MAPPER));
         }
     }
 
     // Connect
+    bool connectionError = false;
     for (int i = 0; i < numOfDestinations; i++) {
         // Connect to each port
         char* destinationPort  = rocData->destinations[i];
         // printf("%s\n", destinationPort);
         int client = set_up(destinationPort);
         if (!client) {
-            // error 6
-            exit(handle_error_message(CONNECTION));
+            connectionError = true;
+            continue;
         }
         int client2 = dup(client);
         FILE* writeFile = fdopen(client, "w");
@@ -143,6 +152,10 @@ int main(int argc, char** argv) {
 
         close(client);
         close(client2);
+    }
+
+    if (connectionError) {
+        exit(handle_error_message(CONNECTION));
     }
 
     return 0;
