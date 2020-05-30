@@ -59,7 +59,6 @@ int main(int argc, char** argv) {
     // Get args
     char* planeId = argv[1];
     char* mapperPort = argv[2];
-    bool mapperRequired = false;
     // if (!is_valid_port(mapperPort, 0) && strcmp(mapperPort, "-")) {
     //     return handle_error_message(INVALID_MAPPER);
     // }
@@ -98,9 +97,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < numOfDestinations; i++) {
             char* destination = rocData->destinations[i];
             if (!is_valid_port(destination, 0)) {
-                if (!mapperRequired) {
-                    mapperRequired = true;
-                }
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -120,8 +116,10 @@ int main(int argc, char** argv) {
 
     } else {
         if (!strcmp(mapperPort, "-")) {
-            if (mapperRequired) {
-                exit(handle_error_message(MAPPER_REQUIRED));
+            for (int i = 0; i < numOfDestinations; i++) {
+                if (!is_valid_port(rocData->destinations[i], 0)) {
+                    exit(handle_error_message(MAPPER_REQUIRED));
+                }
             }
         } else {
             exit(handle_error_message(INVALID_MAPPER));
