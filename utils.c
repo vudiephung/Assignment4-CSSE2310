@@ -21,9 +21,16 @@ bool is_valid_id (char* id) {
 
 bool is_valid_port(char* port, int* portNumber) {
     const int maxPortValue = 65536;
+
+    int temp;
+    if (portNumber == NULL) {
+        portNumber = &temp;
+    }
+
     if (!is_digits_only(port, portNumber)) {
         return false;
     }
+
     return (*portNumber > 0 && *portNumber < maxPortValue);
 }
 

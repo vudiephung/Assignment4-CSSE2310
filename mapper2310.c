@@ -210,7 +210,7 @@ void* handle_request(void* threadData) {
 
     // Get command
     while (true) {
-        if (read_line(readFile, buffer, &defaultBufferSize)) {
+        if (read_line(readFile, buffer, &defaultBufferSize, 0)) {
             handle_command(buffer, mapData, writeFile, lock);
         } else {
             // printf("Disconnected\n");

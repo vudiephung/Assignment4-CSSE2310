@@ -30,7 +30,7 @@ typedef struct {
 
 typedef struct {
     int conn_fd;
-    ControlData* ControlData;
+    ControlData* controlData;
     sem_t* lock;
 } ThreadData;
 
@@ -70,6 +70,13 @@ void* handle_client_job(void* data) {
     char* mapperPort = controlData->mapperPort;
 
     int client = set_up(mapperPort); // set up as client connect to mapperPort
+
+    FILE* readFile = fdopen(client, "r");
+    
+    if (fgetc(readFile) == EOF) {
+        exit(handle_error_message(INVALID_MAP));
+    }
+
     FILE* writeFile = fdopen(client, "w");
     
     fprintf(writeFile, "!%s:%s\n", id, controlPort);
@@ -95,9 +102,20 @@ void lexicographic_order(char** planes, int length) {
     }
 }
 
-void handle_add(char* plane, ControlData* controlData) {
+void handle_add(char* buffer, ControlData* controlData) {
     int* numberOfPlanes = &controlData->numberOfPlanes;
     int* capacity = &controlData->capacity;
+
+    // calc the length of the Plane ID
+    int length = 0;
+    for (int i = 0; buffer[i] != '\0'; i++) {
+        length += 1;
+    }
+
+    char* plane = malloc(sizeof(char) * length);
+    for (int i = 0; i < length + 1; i++) {
+        plane[i] = buffer[i];
+    }
 
     if (*numberOfPlanes + 2 > *capacity) {
         int biggerSize = (*capacity) + 10;
@@ -110,17 +128,11 @@ void handle_add(char* plane, ControlData* controlData) {
         controlData->planes = newPlanes;
     }
     controlData->planes[(*numberOfPlanes)++] = plane;
-    // printf("%d\n", controlData->numberOfPlanes);
-    // lexicographic_order(controlData->planes, *numberOfPlanes);
-    // printf("%s\n", controlData->planes[(*numberOfPlanes - 1)]);
+    lexicographic_order(controlData->planes, *numberOfPlanes);
 }
 
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
-    // for (int i = 0; i < controlData->numberOfPlanes; i++) {
-    //     fprintf(writeFile, "%s\n", controlData->planes[i]);
-    //     fflush(writeFile);
-    // }
     if (!strcmp(buffer, "log") || sighupHappen) {
         // send list
         for (int i = 0; i < controlData->numberOfPlanes; i++) {
@@ -139,7 +151,7 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
     int conn_fd = threadData->conn_fd;
-    ControlData* controlData = threadData->ControlData;
+    ControlData* controlData = threadData->controlData;
     sem_t* lock = threadData->lock;
 
     FILE* readFile = fdopen(conn_fd, "r");
@@ -154,7 +166,6 @@ void* handle_request(void* data) {
             break;
         }
     }
-    // printf("Happened\n");
     // clean up
     free(buffer);
     fclose(readFile);
@@ -176,7 +187,6 @@ int main(int argc, char** argv) {
 
     char* id = argv[1];
     char* info = argv[2];
-    int mapperPort; // cannot be used !!!!!
 
     if (!is_valid_id(id) || !is_valid_id(info)) {
         return handle_error_message(INVALID_CHAR);
@@ -196,10 +206,9 @@ int main(int argc, char** argv) {
         // return 4;
     }
     unsigned int controlPort = ntohs(ad.sin_port);
-    printf("%u\n", controlPort);
 
     if (argv[3]) {
-        if (!is_valid_port(argv[3], &mapperPort)) {
+        if (!is_valid_port(argv[3], 0)) {
             return handle_error_message(INVALID_PORT);
         }
         // Client
@@ -210,17 +219,20 @@ int main(int argc, char** argv) {
 
         pthread_t threadId;
         pthread_create(&threadId, 0, handle_client_job, (void*)controlData);
+        pthread_join(threadId, 0);
     }
 
-    ControlData* ControlData = malloc(sizeof(ControlData));
+    printf("%u\n", controlPort);
+
+    ControlData* controlData = malloc(sizeof(ControlData));
     int capacity = 10;
     char** planes = malloc(sizeof(char*) * capacity);
-    for (int i = 0; i < capacity; i++) {
-        planes[i] = malloc(sizeof(char) * defaultBufferSize);
-    }
-    ControlData->capacity = capacity;
-    ControlData->numberOfPlanes = 0;
-    ControlData->planes = planes;
+    // for (int i = 0; i < capacity; i++) {
+    //     planes[i] = malloc(sizeof(char) * defaultBufferSize);
+    // }
+    controlData->capacity = capacity;
+    controlData->numberOfPlanes = 0;
+    controlData->planes = planes;
 
     sem_t lock;
     sem_init(&lock, 0, 1);
@@ -231,11 +243,12 @@ int main(int argc, char** argv) {
         // if(sighupHappen) {
         //     printf("Happened\n");
         // }
+        // fprintf(stdout, "Hi again\n");
         threadData->conn_fd = conn_fd;
-        threadData->ControlData = ControlData;
+        threadData->controlData = controlData;
         threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);
     }
-    // pthread_exit((void*)0);
+
     return 0;
 }
