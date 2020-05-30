@@ -187,7 +187,8 @@ int main(int argc, char** argv) {
     sighubAction.sa_flags = SA_RESTART;
     sigaction(SIGHUP, &sighubAction, 0);
 
-    if (argc != 2 && argc != 3) {
+    if (argc != 3 && argc != 4) { // only accept 2 args (without mapper)
+                                  // or 3 args (argc = 4) (with mapper)
         return handle_error_message(NUMS_OF_ARGS);
     }
 
