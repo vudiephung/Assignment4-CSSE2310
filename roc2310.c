@@ -33,7 +33,7 @@ Error handle_error_message(Error type) {
             errorMessage = "Invalid mapper port";
             break;
         case MAPPER_REQUIRED:
-            errorMessage = "Mapper requried";
+            errorMessage = "Mapper required";
             break;
         case MAPPER_CONNECT:
             errorMessage = "Failed to connect to mapper";

@@ -150,6 +150,20 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     sem_post(lock);
 }
 
+void* wait_for_signal(void* data) {
+    ThreadData* threadData = (ThreadData*)data;
+    int conn_fd = threadData->conn_fd;
+    ControlData* controlData = threadData->controlData;
+    sem_t* lock = threadData->lock;
+    FILE* writeFile = fdopen(conn_fd, "w");
+    // printf("%d\n", sighupHappen);
+    while (!sighupHappen) {}
+    char* buffer = "log";
+    handle_command(buffer, controlData, writeFile, lock);
+    exit();
+    return 0;
+}
+
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
     int conn_fd = threadData->conn_fd;
@@ -160,11 +174,10 @@ void* handle_request(void* data) {
     FILE* writeFile = fdopen(conn_fd, "w");
     char* buffer = malloc(sizeof(char) * defaultBufferSize);
 
+    pthread_t threadId;
+    pthread_create(&threadId, 0, wait_for_signal, (void*)data);
     // Get command
     while (true) {
-        // if (sighupHappen) {
-        //     break;
-        // }
         if (read_line(readFile, buffer, &defaultBufferSize, &sighupHappen)) {
             handle_command(buffer, controlData, writeFile, lock);
         } else {
@@ -242,11 +255,7 @@ int main(int argc, char** argv) {
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));
 
-    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
-        // if(sighupHappen) {
-        //     printf("Happened\n");
-        // }
-        // fprintf(stdout, "Hi again\n");
+    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
         threadData->conn_fd = conn_fd;
         threadData->controlData = controlData;
         threadData->lock = &lock;

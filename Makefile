@@ -28,4 +28,4 @@ server.o: server.c
 	gcc $(CFLAGS) -c server.c
 
 clean:
-	rm *.o mapper2310 control2310
+	rm *.o mapper2310 control2310 roc2310
