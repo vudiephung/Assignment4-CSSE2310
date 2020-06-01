@@ -51,21 +51,8 @@ Error handle_error_message(Error type) {
     return type;
 }
 
-int main(int argc, char** argv) {
-    if (argc < 3) {
-        return handle_error_message(NUMS_OF_ARGS);
-    }
-
-    // Get args
-    char* planeId = argv[1];
-    char* mapperPort = argv[2];
-    // if (!is_valid_port(mapperPort, 0) && strcmp(mapperPort, "-")) {
-    //     return handle_error_message(INVALID_MAPPER);
-    // }
-
+void set_up(RocData* rocData , int numOfDestinations, char** argv) {
     // Setup struct
-    RocData* rocData = malloc(sizeof(RocData));
-    int numOfDestinations = argc - 3;
     char** destinations = malloc(sizeof(char*) * numOfDestinations);
     rocData->numOfDestinations = numOfDestinations;
     rocData->destinations = destinations;
@@ -76,16 +63,14 @@ int main(int argc, char** argv) {
         rocData->destinations[i] =
                 malloc(sizeof(char) * defaultBufferSize);
         strcpy(rocData->destinations[i], argv[i + 3]);
-        // memcpy(rocData->destinations[i], argv[i + 3], length);
     }
+}
 
-    // for (int i = 0; i < numOfDestinations; i++) {
-    //     printf("%s\n", rocData->destinations[i]);
-    // }
-
+void handle_ports(RocData* rocData, char* mapperPort) {
+    int numOfDestinations = rocData->numOfDestinations;
     // Get list of Ports
     if (is_valid_port(mapperPort, 0)) {
-        int client = set_up(mapperPort);
+        int client = set_up_socket(mapperPort);
         // unexisting mapper port
         if (!client) {
             exit(handle_error_message(MAPPER_CONNECT));
@@ -125,14 +110,16 @@ int main(int argc, char** argv) {
             exit(handle_error_message(INVALID_MAPPER));
         }
     }
+}
 
-    // Connect
+void connect_ports(RocData* rocData, char* planeId) {
+    int numOfDestinations = rocData->numOfDestinations;
     bool connectionError = false;
     for (int i = 0; i < numOfDestinations; i++) {
         // Connect to each port
         char* destinationPort  = rocData->destinations[i];
         // printf("%s\n", destinationPort);
-        int client = set_up(destinationPort);
+        int client = set_up_socket(destinationPort);
         if (!client) {
             connectionError = true;
             continue;
@@ -155,6 +142,26 @@ int main(int argc, char** argv) {
     if (connectionError) {
         exit(handle_error_message(CONNECTION));
     }
+}
+
+int main(int argc, char** argv) {
+    if (argc < 3) {
+        return handle_error_message(NUMS_OF_ARGS);
+    }
+
+    // Get args
+    char* planeId = argv[1];
+    char* mapperPort = argv[2];
+    int numOfDestinations = argc - 3;
+
+    RocData* rocData = malloc(sizeof(RocData));
+    set_up(rocData, numOfDestinations, argv);
+
+    // Handle list of ports
+    handle_ports(rocData, mapperPort);
+
+    // Connect
+    connect_ports(rocData, planeId);
 
     return 0;
 }

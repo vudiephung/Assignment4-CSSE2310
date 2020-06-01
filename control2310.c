@@ -70,7 +70,7 @@ void* handle_client_job(void* data) {
     char* controlPort = mapperArgs->controlPort;
     char* mapperPort = mapperArgs->mapperPort;
 
-    int client = set_up(mapperPort); // set up as client connect to mapperPort
+    int client = set_up_socket(mapperPort); // set up as client connect to mapperPort
     if (!client) {
         exit(handle_error_message(INVALID_MAPPER));
     }
@@ -150,20 +150,6 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     sem_post(lock);
 }
 
-void* wait_for_signal(void* data) {
-    ThreadData* threadData = (ThreadData*)data;
-    int conn_fd = threadData->conn_fd;
-    ControlData* controlData = threadData->controlData;
-    sem_t* lock = threadData->lock;
-    FILE* writeFile = fdopen(conn_fd, "w");
-    // printf("%d\n", sighupHappen);
-    while (!sighupHappen) {}
-    char* buffer = "log";
-    handle_command(buffer, controlData, writeFile, lock);
-    exit();
-    return 0;
-}
-
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
     int conn_fd = threadData->conn_fd;
@@ -174,8 +160,6 @@ void* handle_request(void* data) {
     FILE* writeFile = fdopen(conn_fd, "w");
     char* buffer = malloc(sizeof(char) * defaultBufferSize);
 
-    pthread_t threadId;
-    pthread_create(&threadId, 0, wait_for_signal, (void*)data);
     // Get command
     while (true) {
         if (read_line(readFile, buffer, &defaultBufferSize, &sighupHappen)) {
@@ -193,13 +177,45 @@ void* handle_request(void* data) {
     return 0;
 }
 
-int main(int argc, char** argv) {
-    struct sigaction sighubAction;
-    memset(&sighubAction, 0, sizeof(struct sigaction));
-    sighubAction.sa_handler = sighub_handler;
-    sighubAction.sa_flags = SA_RESTART;
-    sigaction(SIGHUP, &sighubAction, 0);
+void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
+    if (!is_valid_port(mapperPort, 0)) {
+        exit(handle_error_message(INVALID_PORT));
+    }
+    // Client job
+    MapperArgs* mapperArgs = malloc(sizeof(mapperArgs));
+    mapperArgs->id = id;
+    mapperArgs->controlPort = number_to_string(controlPort);
+    mapperArgs->mapperPort = mapperPort;
 
+    pthread_t threadId;
+    pthread_create(&threadId, 0, handle_client_job, (void*)mapperArgs);
+    pthread_join(threadId, 0);
+}
+
+void accept_clients(char* info, int server) {
+    ControlData* controlData = malloc(sizeof(ControlData));
+    int capacity = 10; // default value, could be extended if overloading
+    char** planes = malloc(sizeof(char*) * capacity);
+    controlData->info = info;
+    controlData->capacity = capacity;
+    controlData->numberOfPlanes = 0;
+    controlData->planes = planes;
+
+    sem_t lock;
+    sem_init(&lock, 0, 1);
+    pthread_t threadId;
+    ThreadData* threadData = malloc(sizeof(ThreadData));
+
+    int conn_fd;
+    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
+        threadData->conn_fd = conn_fd;
+        threadData->controlData = controlData;
+        threadData->lock = &lock;
+        pthread_create(&threadId, 0, handle_request, (void*)threadData);
+    }
+}
+
+int main(int argc, char** argv) {
     if (argc != 3 && argc != 4) { // only accept 2 args (without mapper)
                                   // or 3 args (argc = 4) (with mapper)
         return handle_error_message(NUMS_OF_ARGS);
@@ -213,54 +229,20 @@ int main(int argc, char** argv) {
     }
 
     // Server
-    int conn_fd;
-    int server = set_up(0);
-    // Which port did we get?
+    int server = set_up_socket(0);
     struct sockaddr_in ad;
     memset(&ad, 0, sizeof(struct sockaddr_in));
     socklen_t len = sizeof(struct sockaddr_in);
-    if (getsockname(server, (struct sockaddr*)&ad, &len)) {
-        // perror("sockname");
-        // return 4;
-    }
+    if (getsockname(server, (struct sockaddr*)&ad, &len)) { }
     unsigned int controlPort = ntohs(ad.sin_port);
-
-    if (argv[3]) {
-        if (!is_valid_port(argv[3], 0)) {
-            return handle_error_message(INVALID_PORT);
-        }
-        // Client
-        MapperArgs* mapperArgs = malloc(sizeof(mapperArgs));
-        mapperArgs->id = id;
-        mapperArgs->controlPort = number_to_string(controlPort);
-        mapperArgs->mapperPort = argv[3];
-
-        pthread_t threadId;
-        pthread_create(&threadId, 0, handle_client_job, (void*)mapperArgs);
-        pthread_join(threadId, 0);
-    }
-
     printf("%u\n", controlPort);
 
-    ControlData* controlData = malloc(sizeof(ControlData));
-    int capacity = 10;
-    char** planes = malloc(sizeof(char*) * capacity);
-    controlData->info = info;
-    controlData->capacity = capacity;
-    controlData->numberOfPlanes = 0;
-    controlData->planes = planes;
-
-    sem_t lock;
-    sem_init(&lock, 0, 1);
-    pthread_t threadId;
-    ThreadData* threadData = malloc(sizeof(ThreadData));
-
-    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
-        threadData->conn_fd = conn_fd;
-        threadData->controlData = controlData;
-        threadData->lock = &lock;
-        pthread_create(&threadId, 0, handle_request, (void*)threadData);
+    if (argv[3]) {
+        char* mapperPort = argv[3];
+        handle_mapper(mapperPort, id, controlPort);
     }
+
+    accept_clients(id, server);
 
     return 0;
 }

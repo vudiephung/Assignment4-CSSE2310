@@ -3,7 +3,7 @@
 #include <string.h>
 #include "server.h"
 
-int set_up(const char* port) {
+int set_up_socket(const char* port) {
     struct addrinfo* ai = 0;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
