@@ -121,7 +121,7 @@ void add_to_list(MapData* mapData, char* id, char* port) {
 // from 'mapData'
 // Then sort the list of airports with lexicographic order
 // return void
-void handle_add(char* buffer, MapData* mapData) {
+void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
     int* numberOfAirports = &mapData->numberOfAirports;
     int semicolonPosition;
 
@@ -147,10 +147,12 @@ void handle_add(char* buffer, MapData* mapData) {
     // strcpy(id, buffer);
 
     if (is_valid_text(id) &&
-            is_valid_port(port) &&
-            find_index_of_id(id, mapData->airports, *numberOfAirports) == -1) {
+            is_valid_port(port) && find_index_of_id(id,
+            mapData->airports, *numberOfAirports) == -1) {
         // Add to the list
+        sem_wait(lock);
         add_to_list(mapData, id, port);
+        sem_post(lock);
         // Sort in lexicographic order
         lexicographic_order(mapData->airports, *numberOfAirports);
     }
@@ -183,9 +185,8 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
             handle_send(buffer + 1, mapData, writeFile);
             break;
         case '!':
-            sem_wait(lock);
-            handle_add(buffer + 1, mapData);
-            sem_post(lock);
+            handle_add(buffer + 1, mapData, lock);
+            // sem_post(lock);
             break;
         default:
             break;
