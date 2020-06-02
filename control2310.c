@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
     char* id = argv[1];
     char* info = argv[2];
 
-    if (!is_valid_id(id) || !is_valid_id(info)) {
+    if (!is_valid_text(id) || !is_valid_text(info)) {
         return handle_error_message(INVALID_CHAR);
     }
 
