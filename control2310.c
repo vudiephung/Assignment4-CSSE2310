@@ -7,7 +7,7 @@
 #include <semaphore.h>
 #include <signal.h>
 #include "utils.h"
-#include "server.h"
+#include "socket.h"
 
 // default size to allocate a buffer
 int defaultBufferSize = 80;

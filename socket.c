@@ -2,13 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "server.h"
+#include "socket.h"
 
 // Error code to return when cannot set up network connection
 // via function getaddrinfo, bind(), listen(), getsockname()
 const int undefinedErrorCode = 10;
 
-//
+// Set up socket endpoints
+// Args: Given the 'port' that you want to conenct to
+// After the socket is set up, deference the value from ntohs(ad.sin_port)
+// to 'portNumber'
+// In this assignment, if client, 'port' != 0, 'portNumer' == 0
+// If server, then 'port' = 0, 'portNumber' == 0
+// return file descriptor of socket endpoint
 int set_up_socket(const char* port, unsigned int* portNumber) {
     struct addrinfo* addressInfo = 0;
     struct addrinfo hints;

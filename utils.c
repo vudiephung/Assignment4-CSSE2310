@@ -10,7 +10,7 @@ bool is_digits_only(const char* myString, int* value) {
     return (sscanf(myString, "%d%c", value, &temporary) == 1);
 }
 
-//
+// return true if the 'text' does not contain '\n' && '\r' && ':'
 bool is_valid_text(char* text) {
     for (int i = 0; i < strlen(text); i++) {
         if (text[i] == ':' || text[i] == '\n' || text[i] == '\r') {
@@ -20,7 +20,8 @@ bool is_valid_text(char* text) {
     return true;
 }
 
-//
+// return true if the 'port' contains only number and its value from 1
+// to 65535
 bool is_valid_port(char* port) {
     const int maxPortValue = 65535;
 
@@ -33,7 +34,8 @@ bool is_valid_port(char* port) {
     return (portNumber > 0 && portNumber < maxPortValue);
 }
 
-//
+// Return true if buffer contains any new input
+// The params allow for buffers to be reused and resized
 bool read_line(FILE* file, char* buffer, int* size) {
     int count = 0;
     buffer[0] = '\0';
