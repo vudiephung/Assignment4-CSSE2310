@@ -9,7 +9,8 @@
 #include "utils.h"
 #include "server.h"
 
-int defaultBufferSize = 80; // default size to allocate a buffer
+// default size to allocate a buffer
+int defaultBufferSize = 80;
 
 //
 typedef struct {

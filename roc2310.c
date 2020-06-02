@@ -6,7 +6,8 @@
 #include "server.h"
 #include "utils.h"
 
-int defaultBufferSize = 80; // default size to allocate a buffer
+// default size to allocate a buffer
+int defaultBufferSize = 80;
 
 //
 typedef struct { // List of destinations
@@ -54,7 +55,7 @@ Error handle_error_message(Error type) {
 }
 
 //
-void set_up(RocData* rocData , int numOfDestinations, char** argv) {
+void set_up(RocData* rocData, int numOfDestinations, char** argv) {
     // Setup struct
     char** destinations = malloc(sizeof(char*) * numOfDestinations);
     rocData->numOfDestinations = numOfDestinations;
@@ -91,8 +92,8 @@ void handle_ports(RocData* rocData, char* mapperPort) {
                 if (!read_line(readFile, buffer, &defaultBufferSize)) {
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
-                // fprintf(stdout, "%s\n", buffer);
-                if (!strcmp(buffer, ";") || !is_valid_port(buffer)) {
+
+                if (!strcmp(buffer, ";")) {
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
                 strcpy(destination, buffer);
@@ -122,7 +123,7 @@ void connect_ports(RocData* rocData, char* planeId) {
     bool connectionError = false;
     for (int i = 0; i < numOfDestinations; i++) {
         // Connect to each port
-        char* destinationPort  = rocData->destinations[i];
+        char* destinationPort = rocData->destinations[i];
         // printf("%s\n", destinationPort);
         int client = set_up_socket(destinationPort, NULL);
         if (!client) {

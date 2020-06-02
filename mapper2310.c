@@ -10,7 +10,8 @@
 #include "server.h"
 #include "utils.h"
 
-int defaultBufferSize = 80; // default size to allocate a buffer
+// default size to allocate a buffer
+int defaultBufferSize = 80;
 
 //
 typedef struct {
@@ -27,7 +28,7 @@ typedef struct {
 
 //
 typedef struct {
-    int conn_fd;
+    int connectFile;
     MapData* mapData;
     sem_t* lock;
 } ThreadData;
@@ -183,12 +184,12 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
 //
 void* handle_request(void* threadData) {
     ThreadData* myThreadData = (ThreadData*)threadData;
-    int conn_fd = myThreadData->conn_fd;
+    int connectFile = myThreadData->connectFile;
     MapData* mapData = myThreadData->mapData;
     sem_t* lock = myThreadData->lock;
 
-    FILE* readFile = fdopen(conn_fd, "r");
-    FILE* writeFile = fdopen(conn_fd, "w");
+    FILE* readFile = fdopen(connectFile, "r");
+    FILE* writeFile = fdopen(connectFile, "w");
     char* buffer = malloc(sizeof(char) * defaultBufferSize);
 
     // Get command
@@ -214,7 +215,7 @@ int main(int argc, char** argv) {
 
     fprintf(stdout, "%u\n", mapperPort);
     fflush(stdout);
-    int conn_fd;
+    int connectFile;
     sem_t lock;
     sem_init(&lock, 0, 1);
 
@@ -229,8 +230,8 @@ int main(int argc, char** argv) {
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));
 
-    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
-        threadData->conn_fd = conn_fd;
+    while (connectFile = accept(server, 0, 0), connectFile >= 0) {
+        threadData->connectFile = connectFile;
         threadData->mapData = mapData;
         threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);
