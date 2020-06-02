@@ -9,19 +9,16 @@
 #include "utils.h"
 #include "server.h"
 
-int defaultBufferSize = 80;
+int defaultBufferSize = 80; // default size to allocate a buffer
 
-bool sighupHappen = false;
-void sighub_handler(int s) {
-    sighupHappen = true;
-}
-
+//
 typedef struct {
     char* id;
     char* controlPort;
     char* mapperPort;
 } MapperArgs;
 
+//
 typedef struct {
     char* info;
     int capacity;
@@ -29,12 +26,14 @@ typedef struct {
     char** planes;
 } ControlData;
 
+//
 typedef struct {
     int conn_fd;
     ControlData* controlData;
     sem_t* lock;
 } ThreadData;
 
+//
 typedef enum {
     NUMS_OF_ARGS = 1,
     INVALID_CHAR = 2,
@@ -42,6 +41,7 @@ typedef enum {
     INVALID_MAPPER = 4
 } Error;
 
+//
 Error handle_error_message(Error type) {
     const char* errorMessage = "";
     switch (type) {
@@ -64,6 +64,7 @@ Error handle_error_message(Error type) {
     return type;
 }
 
+//
 void* handle_client_job(void* data) {
     MapperArgs* mapperArgs = (MapperArgs*)data;
     char* id = mapperArgs->id;
@@ -71,8 +72,8 @@ void* handle_client_job(void* data) {
     char* mapperPort = mapperArgs->mapperPort;
 
     // set up as client connect to mapperPort
-    int client = set_up_socket(mapperPort);
-    if (!client) {
+    int client = set_up_socket(mapperPort, NULL);
+    if (!client) { // cannot connect with given port
         exit(handle_error_message(INVALID_MAPPER));
     }
 
@@ -88,6 +89,7 @@ void* handle_client_job(void* data) {
     return 0;
 }
 
+//
 void lexicographic_order(char** planes, int length) {
     char tempBuffer[defaultBufferSize];
     for (int i = 0; i < length; i++) {
@@ -102,6 +104,7 @@ void lexicographic_order(char** planes, int length) {
     }
 }
 
+//
 void handle_add(char* buffer, ControlData* controlData) {
     int* numberOfPlanes = &controlData->numberOfPlanes;
     int* capacity = &controlData->capacity;
@@ -131,9 +134,10 @@ void handle_add(char* buffer, ControlData* controlData) {
     lexicographic_order(controlData->planes, *numberOfPlanes);
 }
 
+//
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
-    if (!strcmp(buffer, "log") || sighupHappen) {
+    if (!strcmp(buffer, "log")) {
         // send list
         for (int i = 0; i < controlData->numberOfPlanes; i++) {
             fprintf(writeFile, "%s\n", controlData->planes[i]);
@@ -163,7 +167,7 @@ void* handle_request(void* data) {
 
     // Get command
     while (true) {
-        if (read_line(readFile, buffer, &defaultBufferSize, &sighupHappen)) {
+        if (read_line(readFile, buffer, &defaultBufferSize)) {
             handle_command(buffer, controlData, writeFile, lock);
         } else {
             break;
@@ -178,6 +182,7 @@ void* handle_request(void* data) {
     return 0;
 }
 
+//
 void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
     if (!is_valid_port(mapperPort)) {
         exit(handle_error_message(INVALID_PORT));
@@ -193,6 +198,7 @@ void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
     pthread_join(threadId, 0);
 }
 
+//
 void accept_clients(char* info, int server) {
     ControlData* controlData = malloc(sizeof(ControlData));
     int capacity = 10; // default value, could be extended if overloading
@@ -230,12 +236,8 @@ int main(int argc, char** argv) {
     }
 
     // Server
-    int server = set_up_socket(0);
-    struct sockaddr_in ad;
-    memset(&ad, 0, sizeof(struct sockaddr_in));
-    socklen_t len = sizeof(struct sockaddr_in);
-    if (getsockname(server, (struct sockaddr*)&ad, &len)) {}
-    unsigned int controlPort = ntohs(ad.sin_port);
+    unsigned int controlPort;
+    int server = set_up_socket(0, &controlPort);
 
     if (argv[3]) {
         char* mapperPort = argv[3];

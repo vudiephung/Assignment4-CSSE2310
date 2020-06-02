@@ -9,7 +9,7 @@ bool is_digits_only(const char* myString, int* value) {
     char temporary;
     return (sscanf(myString, "%d%c", value, &temporary) == 1);
 }
-
+//
 bool is_valid_id (char* id) {
     for (int i = 0; i < strlen(id); i++) {
         if (id[i] == ':' || id[i] == '\n' || id[i] == '\r') {
@@ -18,7 +18,7 @@ bool is_valid_id (char* id) {
     }
     return true;
 }
-
+//
 bool is_valid_port(char* port) {
     const int maxPortValue = 65535;
 
@@ -30,16 +30,13 @@ bool is_valid_port(char* port) {
 
     return (portNumber > 0 && portNumber < maxPortValue);
 }
-
-bool read_line(FILE* file, char* buffer, int* size, bool* sighubHappen) {
+//
+bool read_line(FILE* file, char* buffer, int* size) {
     int count = 0;
     buffer[0] = '\0';
     int next;
 
     while (true) {
-        // if (*sighubHappen == true) {
-        //     return false;
-        // }
         next = fgetc(file);
         if (next == EOF || next == '\n') {
             buffer[count] = '\0';
@@ -57,7 +54,6 @@ bool read_line(FILE* file, char* buffer, int* size, bool* sighubHappen) {
             buffer[count++] = (char)next;
         }
     }
-
     return next != EOF;
 }
 

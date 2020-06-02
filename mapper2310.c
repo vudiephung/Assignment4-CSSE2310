@@ -10,25 +10,29 @@
 #include "server.h"
 #include "utils.h"
 
-int defaultBufferSize = 80;
+int defaultBufferSize = 80; // default size to allocate a buffer
 
+//
 typedef struct {
     char* id;
     char* port;
 } Flight;
 
+//
 typedef struct {
     int numbersOfMapping;
     int capacity;
     Flight** flights;
 } MapData;
 
+//
 typedef struct {
     int conn_fd;
     MapData* mapData;
     sem_t* lock;
 } ThreadData;
 
+//
 int find_index_of_id(char* id, Flight** flights, int length) {
     for (int i = 0; i < length; i++) {
         if (!strcmp(id, flights[i]->id)) {
@@ -38,6 +42,7 @@ int find_index_of_id(char* id, Flight** flights, int length) {
     return -1;
 }
 
+//
 void handle_send(char* id, MapData* mapData, FILE* writeFile) {
     Flight** flights = mapData->flights;
     int numbersOfMapping = mapData->numbersOfMapping;
@@ -56,6 +61,7 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
     }
 }
 
+//
 void lexicographic_order(Flight** flights, int length) {
     char tempBufferId[defaultBufferSize];
     char tempPort[defaultBufferSize];
@@ -76,6 +82,7 @@ void lexicographic_order(Flight** flights, int length) {
     }
 }
 
+//
 void add_to_list(MapData* mapData, char* id, char* port) {
     int* numbersOfMapping = &mapData->numbersOfMapping;
     int* capacity = &mapData->capacity;
@@ -100,6 +107,7 @@ void add_to_list(MapData* mapData, char* id, char* port) {
     // }
 }
 
+//
 void handle_add(char* buffer, MapData* mapData) {
     int* numbersOfMapping = &mapData->numbersOfMapping;
     int semicolonPosition;
@@ -141,6 +149,7 @@ void handle_add(char* buffer, MapData* mapData) {
     }
 }
 
+//
 void send_list(MapData* mapData, FILE* writeFile) {
     int numbersOfMapping  = mapData->numbersOfMapping;
     Flight** flights = mapData->flights;
@@ -150,6 +159,7 @@ void send_list(MapData* mapData, FILE* writeFile) {
     }
 }
 
+//
 void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "@")) {
@@ -170,6 +180,7 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
     }
 }
 
+//
 void* handle_request(void* threadData) {
     ThreadData* myThreadData = (ThreadData*)threadData;
     int conn_fd = myThreadData->conn_fd;
@@ -182,7 +193,7 @@ void* handle_request(void* threadData) {
 
     // Get command
     while (true) {
-        if (read_line(readFile, buffer, &defaultBufferSize, 0)) {
+        if (read_line(readFile, buffer, &defaultBufferSize)) {
             handle_command(buffer, mapData, writeFile, lock);
         } else {
             break;
@@ -198,14 +209,10 @@ void* handle_request(void* threadData) {
 }
 
 int main(int argc, char** argv) {
-    int server = set_up_socket(0);
-    // Which port did we get?
-    struct sockaddr_in ad;
-    memset(&ad, 0, sizeof(struct sockaddr_in));
-    socklen_t len = sizeof(struct sockaddr_in);
-    if (getsockname(server, (struct sockaddr*)&ad, &len)) {}
-    unsigned int port = ntohs(ad.sin_port);
-    fprintf(stdout, "%u\n", port);
+    unsigned int mapperPort;
+    int server = set_up_socket(0, &mapperPort);
+
+    fprintf(stdout, "%u\n", mapperPort);
     fflush(stdout);
     int conn_fd;
     sem_t lock;

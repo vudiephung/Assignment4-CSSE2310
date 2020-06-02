@@ -6,14 +6,15 @@
 #include "server.h"
 #include "utils.h"
 
-int defaultBufferSize = 80;
-// int defaultPortSize = 5; // Max digits of port number is 5 (65536)
+int defaultBufferSize = 80; // default size to allocate a buffer
 
+//
 typedef struct { // List of destinations
     int numOfDestinations;
     char** destinations; // store port number of destinations
 } RocData;
 
+//
 typedef enum {
     NUMS_OF_ARGS = 1,
     INVALID_MAPPER = 2,
@@ -23,6 +24,7 @@ typedef enum {
     CONNECTION = 6
 } Error;
 
+//
 Error handle_error_message(Error type) {
     const char* errorMessage = "";
     switch (type) {
@@ -51,6 +53,7 @@ Error handle_error_message(Error type) {
     return type;
 }
 
+//
 void set_up(RocData* rocData , int numOfDestinations, char** argv) {
     // Setup struct
     char** destinations = malloc(sizeof(char*) * numOfDestinations);
@@ -65,12 +68,12 @@ void set_up(RocData* rocData , int numOfDestinations, char** argv) {
         strcpy(rocData->destinations[i], argv[i + 3]);
     }
 }
-
+//
 void handle_ports(RocData* rocData, char* mapperPort) {
     int numOfDestinations = rocData->numOfDestinations;
     // Get list of Ports
     if (is_valid_port(mapperPort)) {
-        int client = set_up_socket(mapperPort);
+        int client = set_up_socket(mapperPort, NULL);
         // unexisting mapper port
         if (!client) {
             exit(handle_error_message(MAPPER_CONNECT));
@@ -85,7 +88,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
-                if (!read_line(readFile, buffer, &defaultBufferSize, 0)) {
+                if (!read_line(readFile, buffer, &defaultBufferSize)) {
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
                 // fprintf(stdout, "%s\n", buffer);
@@ -113,7 +116,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
         }
     }
 }
-
+//
 void connect_ports(RocData* rocData, char* planeId) {
     int numOfDestinations = rocData->numOfDestinations;
     bool connectionError = false;
@@ -121,7 +124,7 @@ void connect_ports(RocData* rocData, char* planeId) {
         // Connect to each port
         char* destinationPort  = rocData->destinations[i];
         // printf("%s\n", destinationPort);
-        int client = set_up_socket(destinationPort);
+        int client = set_up_socket(destinationPort, NULL);
         if (!client) {
             connectionError = true;
             continue;
@@ -133,7 +136,7 @@ void connect_ports(RocData* rocData, char* planeId) {
         fprintf(writeFile, "%s\n", planeId);
         fflush(writeFile);
         char* message = malloc(sizeof(char) * defaultBufferSize);
-        read_line(readFile, message, &defaultBufferSize, 0);
+        read_line(readFile, message, &defaultBufferSize);
         fprintf(stdout, "%s\n", message);
         fflush(stdout);
 
