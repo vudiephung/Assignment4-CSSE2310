@@ -14,7 +14,7 @@ int defaultBufferSize = 80;
 
 typedef struct {
     char* id;
-    int port;
+    char* port;
 } Flight;
 
 typedef struct {
@@ -45,7 +45,7 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
         // Search for existing id
         int index = find_index_of_id(id, flights, numbersOfMapping);
         if (index != -1) {
-            fprintf(writeFile, "%d\n", flights[index]->port);
+            fprintf(writeFile, "%s\n", flights[index]->port);
             fflush(writeFile);
         } else {
             fprintf(writeFile, ";\n");
@@ -58,25 +58,25 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
 
 void lexicographic_order(Flight** flights, int length) {
     char tempBufferId[defaultBufferSize];
-    int tempPort;
+    char tempPort[defaultBufferSize];
     for (int i = 0; i < length; i++) {
         for (int j = i + 1; j < length; j++) {
             //swapping strings if they are not in the lexicographical order
             if (strcmp((flights[i]->id), (flights[j]->id)) > 0) {
                 strcpy(tempBufferId, (flights[i]->id));
-                tempPort = flights[i]->port;
+                strcpy(tempPort, flights[i]->port);
 
                 strcpy((flights[i]->id), (flights[j]->id));
                 flights[i]->port = flights[j]->port;
 
                 strcpy((flights[j]->id), tempBufferId);
-                flights[j]->port = tempPort;
+                strcpy(flights[j]->port, tempPort);
             }
         }
     }
 }
 
-void add_to_list(MapData* mapData, char* id, int port) {
+void add_to_list(MapData* mapData, char* id, char* port) {
     int* numbersOfMapping = &mapData->numbersOfMapping;
     int* capacity = &mapData->capacity;
     // the allocated memory nearly full
@@ -100,33 +100,29 @@ void add_to_list(MapData* mapData, char* id, int port) {
 void handle_add(char* buffer, MapData* mapData) {
     int* numbersOfMapping = &mapData->numbersOfMapping;
     int semicolonPosition;
-    int port;
 
     for (int i = 0; i < strlen(buffer); i++) {
         if (buffer[i] == ':') {
             semicolonPosition = i;
+            buffer[i] = '\0';
             break;
         }
     }
 
-    char* portString = buffer + semicolonPosition + 1;
-
     // Get ID
-    int lengthOfIdBuffer = semicolonPosition + 2; // 1 more space for '\0'
-    char* id = malloc(lengthOfIdBuffer);
-    for (int i = 0; i < lengthOfIdBuffer; i++) {
-        id[i] = buffer[i];
-    }
+    int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
+    char* id = malloc(sizeof(char) * lengthOfId);
+    memcpy(id, buffer, lengthOfId);
+    // Get port
+    char* port = buffer + semicolonPosition + 1;
 
     if (is_valid_id(id) &&
-            is_valid_port(portString, &port) &&
+            is_valid_port(port) &&
             find_index_of_id(id, mapData->flights, *numbersOfMapping) == -1) {
         // Add to the list
         add_to_list(mapData, id, port);
         // Sort in lexicographic order
         lexicographic_order(mapData->flights, *numbersOfMapping);
-    } else {
-        return;
     }
 }
 
@@ -134,7 +130,7 @@ void send_list(MapData* mapData, FILE* writeFile) {
     int numbersOfMapping  = mapData->numbersOfMapping;
     Flight** flights = mapData->flights;
     for (int i = 0; i < numbersOfMapping; i++) {
-        fprintf(writeFile, "%s:%d\n", flights[i]->id, flights[i]->port);
+        fprintf(writeFile, "%s:%s\n", flights[i]->id, flights[i]->port);
         fflush(writeFile);
     }
 }
@@ -210,7 +206,7 @@ int main(int argc, char** argv) {
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));
 
-    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) { // change 0, 0 to get info about other end
+    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
         threadData->conn_fd = conn_fd;
         threadData->mapData = mapData;
         threadData->lock = &lock;

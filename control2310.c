@@ -178,7 +178,7 @@ void* handle_request(void* data) {
 }
 
 void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
-    if (!is_valid_port(mapperPort, 0)) {
+    if (!is_valid_port(mapperPort)) {
         exit(handle_error_message(INVALID_PORT));
     }
     // Client job

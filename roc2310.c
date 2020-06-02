@@ -69,7 +69,7 @@ void set_up(RocData* rocData , int numOfDestinations, char** argv) {
 void handle_ports(RocData* rocData, char* mapperPort) {
     int numOfDestinations = rocData->numOfDestinations;
     // Get list of Ports
-    if (is_valid_port(mapperPort, 0)) {
+    if (is_valid_port(mapperPort)) {
         int client = set_up_socket(mapperPort);
         // unexisting mapper port
         if (!client) {
@@ -81,7 +81,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
 
         for (int i = 0; i < numOfDestinations; i++) {
             char* destination = rocData->destinations[i];
-            if (!is_valid_port(destination, 0)) {
+            if (!is_valid_port(destination)) {
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -102,7 +102,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
     } else {
         if (!strcmp(mapperPort, "-")) {
             for (int i = 0; i < numOfDestinations; i++) {
-                if (!is_valid_port(rocData->destinations[i], 0)) {
+                if (!is_valid_port(rocData->destinations[i])) {
                     exit(handle_error_message(MAPPER_REQUIRED));
                 }
             }

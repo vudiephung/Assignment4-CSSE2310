@@ -19,19 +19,16 @@ bool is_valid_id (char* id) {
     return true;
 }
 
-bool is_valid_port(char* port, int* portNumber) {
+bool is_valid_port(char* port) {
     const int maxPortValue = 65536;
 
-    int temp;
-    if (portNumber == NULL) {
-        portNumber = &temp;
-    }
+    int portNumber;
 
-    if (!is_digits_only(port, portNumber)) {
+    if (!is_digits_only(port, &portNumber)) {
         return false;
     }
 
-    return (*portNumber > 0 && *portNumber < maxPortValue);
+    return (portNumber > 0 && portNumber < maxPortValue);
 }
 
 bool read_line(FILE* file, char* buffer, int* size, bool* sighubHappen) {
