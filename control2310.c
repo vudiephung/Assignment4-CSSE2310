@@ -70,7 +70,8 @@ void* handle_client_job(void* data) {
     char* controlPort = mapperArgs->controlPort;
     char* mapperPort = mapperArgs->mapperPort;
 
-    int client = set_up_socket(mapperPort); // set up as client connect to mapperPort
+    // set up as client connect to mapperPort
+    int client = set_up_socket(mapperPort);
     if (!client) {
         exit(handle_error_message(INVALID_MAPPER));
     }
@@ -233,7 +234,7 @@ int main(int argc, char** argv) {
     struct sockaddr_in ad;
     memset(&ad, 0, sizeof(struct sockaddr_in));
     socklen_t len = sizeof(struct sockaddr_in);
-    if (getsockname(server, (struct sockaddr*)&ad, &len)) { }
+    if (getsockname(server, (struct sockaddr*)&ad, &len)) {}
     unsigned int controlPort = ntohs(ad.sin_port);
 
     if (argv[3]) {
@@ -244,7 +245,7 @@ int main(int argc, char** argv) {
     fprintf(stdout, "%u\n", controlPort);
     fflush(stdout);
 
-    accept_clients(id, server);
+    accept_clients(info, server);
 
     return 0;
 }

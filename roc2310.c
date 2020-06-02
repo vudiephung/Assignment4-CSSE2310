@@ -85,12 +85,14 @@ void handle_ports(RocData* rocData, char* mapperPort) {
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
-                read_line(readFile, buffer, &defaultBufferSize, 0); ///
-                // fprintf(stdout, "%s\n", buffer);
-                strcpy(destination, buffer);
-                if (!strcmp(buffer, ";")) {
+                if (!read_line(readFile, buffer, &defaultBufferSize, 0)) {
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
+                // fprintf(stdout, "%s\n", buffer);
+                if (!strcmp(buffer, ";") || !is_valid_port(buffer)) {
+                    exit(handle_error_message(MAPPER_ENTRY));
+                }
+                strcpy(destination, buffer);
             }
         }
 
