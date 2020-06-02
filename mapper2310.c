@@ -64,13 +64,13 @@ void lexicographic_order(Flight** flights, int length) {
             //swapping strings if they are not in the lexicographical order
             if (strcmp((flights[i]->id), (flights[j]->id)) > 0) {
                 strcpy(tempBufferId, (flights[i]->id));
-                strcpy(tempPort, flights[i]->port);
+                strcpy(tempPort, (flights[i]->port));
 
                 strcpy((flights[i]->id), (flights[j]->id));
-                flights[i]->port = flights[j]->port;
+                strcpy((flights[i]->port), (flights[j]->port));
 
                 strcpy((flights[j]->id), tempBufferId);
-                strcpy(flights[j]->port, tempPort);
+                strcpy((flights[j]->port), tempPort);
             }
         }
     }
@@ -95,6 +95,9 @@ void add_to_list(MapData* mapData, char* id, char* port) {
     flight->id = id;
     flight->port = port;
     mapData->flights[(*numbersOfMapping)++] = flight;
+    // for (int i = 0; i < *numbersOfMapping; i++) {
+    //     printf("id: %s port: %s\n",( mapData->flights[i])->id,( mapData->flights[i])->port);
+    // }
 }
 
 void handle_add(char* buffer, MapData* mapData) {
@@ -113,8 +116,20 @@ void handle_add(char* buffer, MapData* mapData) {
     int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
     char* id = malloc(sizeof(char) * lengthOfId);
     memcpy(id, buffer, lengthOfId);
+    // strcpy(id, buffer);
+    // for (int i = 0; i < lengthOfId; i++) {
+    //     id[i] = buffer[i];
+    // }
+    // strcpy(buffer, id);
     // Get port
-    char* port = buffer + semicolonPosition + 1;
+    buffer = buffer + semicolonPosition + 1;
+    size_t lengthOfPort = strlen(buffer) + 1;
+    char* port = malloc(sizeof(char) * lengthOfPort);
+    // for (int i = 0; i < lengthOfPort; i++) {
+    //     port[i] = buffer[i];
+    // }
+    memcpy(port, buffer, lengthOfPort);
+    // strcpy(id, buffer);
 
     if (is_valid_id(id) &&
             is_valid_port(port) &&
@@ -190,7 +205,8 @@ int main(int argc, char** argv) {
     socklen_t len = sizeof(struct sockaddr_in);
     if (getsockname(server, (struct sockaddr*)&ad, &len)) {}
     unsigned int port = ntohs(ad.sin_port);
-    printf("%u\n", port);
+    fprintf(stdout, "%u\n", port);
+    fflush(stdout);
     int conn_fd;
     sem_t lock;
     sem_init(&lock, 0, 1);

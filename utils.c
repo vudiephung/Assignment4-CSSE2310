@@ -20,7 +20,7 @@ bool is_valid_id (char* id) {
 }
 
 bool is_valid_port(char* port) {
-    const int maxPortValue = 65536;
+    const int maxPortValue = 65535;
 
     int portNumber;
 
@@ -80,23 +80,3 @@ char* number_to_string(unsigned int number) {
     sprintf(numberAsString, "%d", number);
     return numberAsString;
 }
-
-// void lexicographic_order(Flight** flights, int length) {
-//     char tempBufferId[defaultBufferSize];
-//     int tempPort;
-//     for (int i = 0; i < length; i++) {
-//         for (int j = i + 1; j < length; j++) {
-//             //swapping strings if they are not in the lexicographical order
-//             if (strcmp((flights[i]->id), (flights[j]->id)) > 0) {
-//                 strcpy(tempBufferId, (flights[i]->id));
-//                 tempPort = flights[i]->port;
-
-//                 strcpy((flights[i]->id), (flights[j]->id));
-//                 flights[i]->port = flights[j]->port;
-
-//                 strcpy((flights[j]->id), tempBufferId);
-//                 flights[j]->port = tempPort;
-//             }
-//         }
-//     }
-// }

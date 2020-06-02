@@ -235,12 +235,14 @@ int main(int argc, char** argv) {
     socklen_t len = sizeof(struct sockaddr_in);
     if (getsockname(server, (struct sockaddr*)&ad, &len)) { }
     unsigned int controlPort = ntohs(ad.sin_port);
-    printf("%u\n", controlPort);
 
     if (argv[3]) {
         char* mapperPort = argv[3];
         handle_mapper(mapperPort, id, controlPort);
     }
+
+    fprintf(stdout, "%u\n", controlPort);
+    fflush(stdout);
 
     accept_clients(id, server);
 
