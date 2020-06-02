@@ -10,50 +10,54 @@
 #include "server.h"
 #include "utils.h"
 
-// default size to allocate a buffer
+// Default size to allocate a buffer
 int defaultBufferSize = 80;
 
-//
+// Define an airport with id and port
 typedef struct {
     char* id;
     char* port;
-} Flight;
+} Airport;
 
-//
+// A mapper contains data of 
 typedef struct {
-    int numbersOfMapping;
-    int capacity;
-    Flight** flights;
+    int numberOfAirports; // The number of airports in the list
+    int capacity; // define sizes of the allocated memory (could be extended)
+    Airport** airports; // Array of airports
 } MapData;
 
-//
+// The struct that is passed to thread function
 typedef struct {
-    int connectFile;
-    MapData* mapData;
-    sem_t* lock;
+    int connectFile; // file descriptor that are returned from accept()
+    MapData* mapData; // Data of the mapper
+    sem_t* lock; // semaphore to handle race condition
 } ThreadData;
 
-//
-int find_index_of_id(char* id, Flight** flights, int length) {
+// Find the index of the 'id' in 'Airport' with size of 'length'
+// If the index is found, return it. Otherwise, return -1
+int find_index_of_id(char* id, Airport** airports, int length) {
     for (int i = 0; i < length; i++) {
-        if (!strcmp(id, flights[i]->id)) {
+        if (!strcmp(id, airports[i]->id)) {
             return i;
         }
     }
     return -1;
 }
 
-//
+// Handle the case when client send ? + 'id' of the airport
+// Get the airports list from 'mapData' then write the result to the
+// 'writeFile'.
+// Return void;
 void handle_send(char* id, MapData* mapData, FILE* writeFile) {
-    Flight** flights = mapData->flights;
-    int numbersOfMapping = mapData->numbersOfMapping;
-    if (is_valid_id(id)) {
+    Airport** airports = mapData->airports;
+    int numberOfAirports = mapData->numberOfAirports;
+    if (is_valid_text(id)) {
         // Search for existing id
-        int index = find_index_of_id(id, flights, numbersOfMapping);
-        if (index != -1) {
-            fprintf(writeFile, "%s\n", flights[index]->port);
+        int index = find_index_of_id(id, airports, numberOfAirports);
+        if (index != -1) { // index is found
+            fprintf(writeFile, "%s\n", airports[index]->port);
             fflush(writeFile);
-        } else {
+        } else { // index is not found
             fprintf(writeFile, ";\n");
             fflush(writeFile);
         }
@@ -62,22 +66,22 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
     }
 }
 
-//
-void lexicographic_order(Flight** flights, int length) {
+// With 
+void lexicographic_order(Airport** airports, int length) {
     char tempBufferId[defaultBufferSize];
     char tempPort[defaultBufferSize];
     for (int i = 0; i < length; i++) {
         for (int j = i + 1; j < length; j++) {
             //swapping strings if they are not in the lexicographical order
-            if (strcmp((flights[i]->id), (flights[j]->id)) > 0) {
-                strcpy(tempBufferId, (flights[i]->id));
-                strcpy(tempPort, (flights[i]->port));
+            if (strcmp((airports[i]->id), (airports[j]->id)) > 0) {
+                strcpy(tempBufferId, (airports[i]->id));
+                strcpy(tempPort, (airports[i]->port));
 
-                strcpy((flights[i]->id), (flights[j]->id));
-                strcpy((flights[i]->port), (flights[j]->port));
+                strcpy((airports[i]->id), (airports[j]->id));
+                strcpy((airports[i]->port), (airports[j]->port));
 
-                strcpy((flights[j]->id), tempBufferId);
-                strcpy((flights[j]->port), tempPort);
+                strcpy((airports[j]->id), tempBufferId);
+                strcpy((airports[j]->port), tempPort);
             }
         }
     }
@@ -85,32 +89,29 @@ void lexicographic_order(Flight** flights, int length) {
 
 //
 void add_to_list(MapData* mapData, char* id, char* port) {
-    int* numbersOfMapping = &mapData->numbersOfMapping;
+    int* numberOfAirports = &mapData->numberOfAirports;
     int* capacity = &mapData->capacity;
     // the allocated memory nearly full
-    if (*numbersOfMapping + 2 > *capacity) {
+    if (*numberOfAirports + 2 > *capacity) {
         int biggerSize = (*capacity) + 10;
-        Flight** newFlights = (Flight**)realloc(mapData->flights,
-                sizeof(Flight*) * biggerSize);
+        Airport** newFlights = (Airport**)realloc(mapData->airports,
+                sizeof(Airport*) * biggerSize);
         if (newFlights == 0) { // Cannot allocated
             return;
         }
         *capacity = biggerSize;
-        mapData->flights = newFlights;
+        mapData->airports = newFlights;
     }
 
-    Flight* flight = malloc(sizeof(Flight));
+    Airport* flight = malloc(sizeof(Airport));
     flight->id = id;
     flight->port = port;
-    mapData->flights[(*numbersOfMapping)++] = flight;
-    // for (int i = 0; i < *numbersOfMapping; i++) {
-    //     printf("id: %s port: %s\n",( mapData->flights[i])->id,( mapData->flights[i])->port);
-    // }
+    mapData->airports[(*numberOfAirports)++] = flight;
 }
 
 //
 void handle_add(char* buffer, MapData* mapData) {
-    int* numbersOfMapping = &mapData->numbersOfMapping;
+    int* numberOfAirports = &mapData->numberOfAirports;
     int semicolonPosition;
 
     for (int i = 0; i < strlen(buffer); i++) {
@@ -140,22 +141,22 @@ void handle_add(char* buffer, MapData* mapData) {
     memcpy(port, buffer, lengthOfPort);
     // strcpy(id, buffer);
 
-    if (is_valid_id(id) &&
+    if (is_valid_text(id) &&
             is_valid_port(port) &&
-            find_index_of_id(id, mapData->flights, *numbersOfMapping) == -1) {
+            find_index_of_id(id, mapData->airports, *numberOfAirports) == -1) {
         // Add to the list
         add_to_list(mapData, id, port);
         // Sort in lexicographic order
-        lexicographic_order(mapData->flights, *numbersOfMapping);
+        lexicographic_order(mapData->airports, *numberOfAirports);
     }
 }
 
 //
 void send_list(MapData* mapData, FILE* writeFile) {
-    int numbersOfMapping  = mapData->numbersOfMapping;
-    Flight** flights = mapData->flights;
-    for (int i = 0; i < numbersOfMapping; i++) {
-        fprintf(writeFile, "%s:%s\n", flights[i]->id, flights[i]->port);
+    int numberOfAirports  = mapData->numberOfAirports;
+    Airport** airports = mapData->airports;
+    for (int i = 0; i < numberOfAirports; i++) {
+        fprintf(writeFile, "%s:%s\n", airports[i]->id, airports[i]->port);
         fflush(writeFile);
     }
 }
@@ -222,10 +223,10 @@ int main(int argc, char** argv) {
     // Set up Struct
     int capacity = 10;
     MapData* mapData = malloc(sizeof(MapData));
-    Flight** flights = malloc(sizeof(Flight*) * capacity);
+    Airport** airports = malloc(sizeof(Airport*) * capacity);
     mapData->capacity = capacity;
-    mapData->numbersOfMapping = 0;
-    mapData->flights = flights;
+    mapData->numberOfAirports = 0;
+    mapData->airports = airports;
 
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));

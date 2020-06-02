@@ -9,15 +9,17 @@ bool is_digits_only(const char* myString, int* value) {
     char temporary;
     return (sscanf(myString, "%d%c", value, &temporary) == 1);
 }
+
 //
-bool is_valid_id (char* id) {
-    for (int i = 0; i < strlen(id); i++) {
-        if (id[i] == ':' || id[i] == '\n' || id[i] == '\r') {
+bool is_valid_text(char* text) {
+    for (int i = 0; i < strlen(text); i++) {
+        if (text[i] == ':' || text[i] == '\n' || text[i] == '\r') {
             return false;
         }
     }
     return true;
 }
+
 //
 bool is_valid_port(char* port) {
     const int maxPortValue = 65535;
@@ -30,6 +32,7 @@ bool is_valid_port(char* port) {
 
     return (portNumber > 0 && portNumber < maxPortValue);
 }
+
 //
 bool read_line(FILE* file, char* buffer, int* size) {
     int count = 0;

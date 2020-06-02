@@ -29,7 +29,7 @@ typedef struct {
 
 //
 typedef struct {
-    int conn_fd;
+    int connectFile;
     ControlData* controlData;
     sem_t* lock;
 } ThreadData;
@@ -156,14 +156,15 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     sem_post(lock);
 }
 
+// 
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
-    int conn_fd = threadData->conn_fd;
+    int connectFile = threadData->connectFile;
     ControlData* controlData = threadData->controlData;
     sem_t* lock = threadData->lock;
 
-    FILE* readFile = fdopen(conn_fd, "r");
-    FILE* writeFile = fdopen(conn_fd, "w");
+    FILE* readFile = fdopen(connectFile, "r");
+    FILE* writeFile = fdopen(connectFile, "w");
     char* buffer = malloc(sizeof(char) * defaultBufferSize);
 
     // Get command
@@ -214,9 +215,9 @@ void accept_clients(char* info, int server) {
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));
 
-    int conn_fd;
-    while (conn_fd = accept(server, 0, 0), conn_fd >= 0) {
-        threadData->conn_fd = conn_fd;
+    int connectFile;
+    while (connectFile = accept(server, 0, 0), connectFile >= 0) {
+        threadData->connectFile = connectFile;
         threadData->controlData = controlData;
         threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);

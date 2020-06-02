@@ -10,7 +10,7 @@ const int undefinedErrorCode = 10;
 
 //
 int set_up_socket(const char* port, unsigned int* portNumber) {
-    struct addrinfo* ai = 0;
+    struct addrinfo* addressInfo = 0;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET; // IPv4  for generic could use AF_UNSPEC
@@ -19,8 +19,8 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
         hints.ai_flags = AI_PASSIVE;
     }
     int err;
-    if ((err = getaddrinfo("localhost", port, &hints, &ai))) {
-        freeaddrinfo(ai);
+    if ((err = getaddrinfo("localhost", port, &hints, &addressInfo))) {
+        freeaddrinfo(addressInfo);
         fprintf(stderr, "%s\n", gai_strerror(err));
         exit(undefinedErrorCode);
     }
@@ -29,7 +29,7 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
     int socketEndpoint = socket(AF_INET, SOCK_STREAM, 0);
 
     if (!port) { // server
-        if (bind(socketEndpoint, (struct sockaddr*)ai->ai_addr,
+        if (bind(socketEndpoint, (struct sockaddr*)addressInfo->ai_addr,
                 sizeof(struct sockaddr))) {
             perror("Binding");
             exit(undefinedErrorCode);
@@ -47,7 +47,7 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
         }
         *portNumber = ntohs(ad.sin_port);
     } else { // client
-        if (connect(socketEndpoint, (struct sockaddr*)ai->ai_addr,
+        if (connect(socketEndpoint, (struct sockaddr*)addressInfo->ai_addr,
                 sizeof(struct sockaddr))) {
             // return 0 when the client cannot to the server with given port
             socketEndpoint = 0; 
