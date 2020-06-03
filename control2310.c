@@ -92,12 +92,12 @@ void handle_add(char* buffer, ControlData* controlData) {
     int* capacity = &controlData->capacity;
 
     // calc the length of the Plane ID
-    size_t length = strlen(buffer);
+    // size_t length = strlen(buffer);
 
-    char* plane = malloc(sizeof(char) * length);
-    for (int i = 0; i < length + 1; i++) {
-        plane[i] = buffer[i];
-    }
+    // char* plane = malloc(sizeof(char) * length);
+    // for (int i = 0; i < length + 1; i++) {
+    //     plane[i] = buffer[i];
+    // }
 
     if (*numberOfPlanes + 2 > *capacity) {
         int biggerSize = (*capacity) * 1.5;
@@ -110,7 +110,7 @@ void handle_add(char* buffer, ControlData* controlData) {
         controlData->planes = newPlanes;
     }
 
-    controlData->planes[(*numberOfPlanes)++] = plane;
+    controlData->planes[(*numberOfPlanes)++] = buffer;
     lexicographic_order(controlData->planes, *numberOfPlanes);
 }
 
@@ -129,12 +129,12 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         fflush(writeFile);
         return;
     }
-    sem_wait(lock);
+    // sem_wait(lock);
     handle_add(buffer, controlData);
+    // sem_post(lock);
     // send back info
     fprintf(writeFile, "%s\n", controlData->info);
     fflush(writeFile);
-    sem_post(lock);
 }
 
 // Thread function to handle request from a client with given parameter

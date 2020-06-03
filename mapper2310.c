@@ -33,15 +33,29 @@ typedef struct {
     sem_t* lock; // semaphore to handle race condition
 } ThreadData;
 
-// Find the index of the 'id' in 'Airport' with size of 'length'
-// If the index is found, return it. Otherwise, return -1
+// Using Binary Search to find the index of the 'id' in 'Airport' with
+// size of 'length'. If the index is found, return it. Otherwise, return -1
 int find_index_of_id(char* id, Airport** airports, int length) {
-    for (int i = 0; i < length; i++) {
-        if (!strcmp(id, airports[i]->id)) {
-            return i;
+    int left = 0;
+    int right = length - 1;
+
+    while (left <= right) { 
+        int mid = left + (right - left) / 2;
+
+        if (!strcmp(id, airports[mid]->id)) { // found
+            return mid; 
         }
-    }
-    return -1;
+
+        if (strcmp(id, airports[mid]->id) > 0) { // id one the half right
+            left = mid + 1; // set the right next to the mid
+        }
+
+        else {
+            right = mid - 1; 
+        }
+    } 
+
+    return -1; 
 }
 
 // Handle the case when client send ? + 'id' of the airport
@@ -61,8 +75,6 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
             fprintf(writeFile, ";\n");
             fflush(writeFile);
         }
-    } else {
-        return;
     }
 }
 
@@ -97,28 +109,33 @@ void add_to_list(MapData* mapData, char* id, char* port, sem_t* lock) {
     airport->port = port;
 
     sem_wait(lock);
-    (mapData->numberOfAirports)++;
-    sem_post(lock);
-
     int* numberOfAirports = &mapData->numberOfAirports;
-    // int* capacity = &mapData->capacity;
+    int* capacity = &mapData->capacity;
 
     // if the allocated memory is nearly full
-    // if (*numberOfAirports + 2 > *capacity) {
-    //     int biggerSize = (*capacity) * 1.5;
-    //     // Reallocate memory with bigger size
-    //     Airport** newAirports = (Airport**)realloc(mapData->airports,
-    //             sizeof(Airport*) * biggerSize);
-    //     if (newAirports == 0) { // Cannot be allocated
-    //         return;
-    //     }
-    //     // Update the value of 'capacity' and and the 'airports'
-    //     *capacity = biggerSize;
-    //     mapData->airports = newAirports;
-    // }
+    if (*numberOfAirports + 2 > *capacity) {
+        int biggerSize = (*capacity) * 1.5;
+        // Reallocate memory with bigger size
+        Airport** newAirports = (Airport**)realloc(mapData->airports,
+                sizeof(Airport*) * biggerSize);
+        if (newAirports == 0) { // Cannot be allocated
+            return;
+        }
+        // Update the value of 'capacity' and and the 'airports'
+        *capacity = biggerSize;
+        mapData->airports = newAirports;
+    }
 
-    // append that airport to the array
-    mapData->airports[*numberOfAirports - 1] = airport;
+    // cannot find the existing index
+    if (find_index_of_id(id, mapData->airports, *numberOfAirports) == -1) {
+        // append that airport to the array
+        mapData->airports[(*numberOfAirports)++] = airport;
+    }
+
+    // Sort in lexicographic order
+    lexicographic_order(mapData->airports, *numberOfAirports);
+
+    sem_post(lock);
 }
 
 // From given 'buffer' after emliminated the '!' characterr
@@ -127,7 +144,6 @@ void add_to_list(MapData* mapData, char* id, char* port, sem_t* lock) {
 // Then sort the list of airports with lexicographic order
 // return void
 void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
-    int* numberOfAirports = &mapData->numberOfAirports;
     int semicolonPosition;
 
     for (int i = 0; i < strlen(buffer); i++) {
@@ -138,26 +154,30 @@ void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
         }
     }
 
-    // Get ID
-    int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
-    char* id = malloc(sizeof(char) * lengthOfId);
-    memcpy(id, buffer, lengthOfId);
+    char* id = malloc(sizeof(char) * defaultBufferSize);
+    char* port = malloc(sizeof(char) * defaultBufferSize);
 
-    // Get port
-    buffer = buffer + semicolonPosition + 1;
-    size_t lengthOfPort = strlen(buffer) + 1;
-    char* port = malloc(sizeof(char) * lengthOfPort);
+    strcpy(id, buffer);
+    strcpy(port, buffer + semicolonPosition + 1);
 
-    memcpy(port, buffer, lengthOfPort);
-    // strcpy(id, buffer);
+    // printf("%s %s\n", id, port);
 
-    if (is_valid_text(id) &&
-            is_valid_port(port) && find_index_of_id(id,
-            mapData->airports, *numberOfAirports) == -1) {
+    // // Get ID
+    // int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
+    // char* id = malloc(sizeof(char) * lengthOfId);
+    // memcpy(id, buffer, lengthOfId);
+
+    // // Get port
+    // buffer = buffer + semicolonPosition + 1;
+    // size_t lengthOfPort = strlen(buffer) + 1;
+    // // char* port = malloc(sizeof(char) * lengthOfPort);
+    // memcpy(port, buffer, lengthOfPort);
+
+    if (is_valid_text(id) && is_valid_port(port)) {
         // Add to the list
         add_to_list(mapData, id, port, lock);
-        // Sort in lexicographic order
-        lexicographic_order(mapData->airports, *numberOfAirports);
+        // // Sort in lexicographic order
+        // lexicographic_order(mapData->airports, *numberOfAirports);
     }
 }
 
