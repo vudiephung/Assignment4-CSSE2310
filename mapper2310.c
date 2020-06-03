@@ -97,26 +97,28 @@ void add_to_list(MapData* mapData, char* id, char* port, sem_t* lock) {
     airport->port = port;
 
     sem_wait(lock);
+    (mapData->numberOfAirports)++;
+    sem_post(lock);
+
     int* numberOfAirports = &mapData->numberOfAirports;
-    int* capacity = &mapData->capacity;
+    // int* capacity = &mapData->capacity;
 
     // if the allocated memory is nearly full
-    if (*numberOfAirports + 2 > *capacity) {
-        int biggerSize = (*capacity) + 10;
-        // Reallocate memory with bigger size
-        Airport** newAirports = (Airport**)realloc(mapData->airports,
-                sizeof(Airport*) * biggerSize);
-        if (newAirports == 0) { // Cannot be allocated
-            return;
-        }
-        // Update the value of 'capacity' and and the 'airports'
-        *capacity = biggerSize;
-        mapData->airports = newAirports;
-    }
+    // if (*numberOfAirports + 2 > *capacity) {
+    //     int biggerSize = (*capacity) * 1.5;
+    //     // Reallocate memory with bigger size
+    //     Airport** newAirports = (Airport**)realloc(mapData->airports,
+    //             sizeof(Airport*) * biggerSize);
+    //     if (newAirports == 0) { // Cannot be allocated
+    //         return;
+    //     }
+    //     // Update the value of 'capacity' and and the 'airports'
+    //     *capacity = biggerSize;
+    //     mapData->airports = newAirports;
+    // }
 
     // append that airport to the array
-    mapData->airports[(*numberOfAirports)++] = airport;
-    sem_post(lock);
+    mapData->airports[*numberOfAirports - 1] = airport;
 }
 
 // From given 'buffer' after emliminated the '!' characterr
@@ -237,7 +239,7 @@ int main(int argc, char** argv) {
     sem_init(&lock, 0, 1);
 
     // Set up Struct
-    int capacity = 10;
+    int capacity = 100000000;
     MapData* mapData = malloc(sizeof(MapData));
     Airport** airports = malloc(sizeof(Airport*) * capacity);
     mapData->capacity = capacity;

@@ -25,7 +25,7 @@ typedef enum {
     CONNECTION = 6
 } Error;
 
-// Print the corresponding message with 'type' to stderr and exit with
+// Print the corresponding message with 'type' to stderr and return that
 // error code
 Error handle_error_message(Error type) {
     const char* errorMessage = "";

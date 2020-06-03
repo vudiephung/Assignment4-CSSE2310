@@ -12,29 +12,31 @@
 // default size to allocate a buffer
 int defaultBufferSize = 80;
 
-//
+// Struct that contains args to pass to thread function that connects to
+// mapper and send 'id' and 'controlPort' of current control
 typedef struct {
     char* id;
     char* controlPort;
     char* mapperPort;
 } MapperArgs;
 
-//
+// Essential information of a control
 typedef struct {
-    char* info;
-    int capacity;
+    char* info; // info ofthe control
+    int capacity; // Capacity of 'planes' array, could be extended
     int numberOfPlanes;
     char** planes;
 } ControlData;
 
-//
+// When a client connect to the control server, create a new thread,
+// run a function with the parameter of this struct
 typedef struct {
-    int connectFile;
+    int connectFile; // fd of socket endpoint
     ControlData* controlData;
-    sem_t* lock;
+    sem_t* lock; // semaphore to handle race condition
 } ThreadData;
 
-//
+// Define error exit code
 typedef enum {
     NUMS_OF_ARGS = 1,
     INVALID_CHAR = 2,
@@ -42,7 +44,8 @@ typedef enum {
     INVALID_MAPPER = 4
 } Error;
 
-//
+// Print to stderr with the corresponding message of the 'type'
+// and return that error code
 Error handle_error_message(Error type) {
     const char* errorMessage = "";
     switch (type) {
@@ -65,32 +68,8 @@ Error handle_error_message(Error type) {
     return type;
 }
 
-//
-void* handle_client_job(void* data) {
-    MapperArgs* mapperArgs = (MapperArgs*)data;
-    char* id = mapperArgs->id;
-    char* controlPort = mapperArgs->controlPort;
-    char* mapperPort = mapperArgs->mapperPort;
-
-    // set up as client connect to mapperPort
-    int client = set_up_socket(mapperPort, NULL);
-    if (!client) { // cannot connect with given port
-        exit(handle_error_message(INVALID_MAPPER));
-    }
-
-    FILE* writeFile = fdopen(client, "w");
-
-    fprintf(writeFile, "!%s:%s\n", id, controlPort);
-    fflush(writeFile);
-
-    // close the connection
-    fclose(writeFile);
-    close(client);
-
-    return 0;
-}
-
-//
+// Sort the 'planes' with its 'length' in lexicographic order
+// return void;
 void lexicographic_order(char** planes, int length) {
     char tempBuffer[defaultBufferSize];
     for (int i = 0; i < length; i++) {
@@ -105,16 +84,15 @@ void lexicographic_order(char** planes, int length) {
     }
 }
 
-//
+// From a 'buffer', truncate that string to get the plane id and add it
+// variable 'planes' of 'controlData' then sort that array with 
+// lexicographic order. Return void;
 void handle_add(char* buffer, ControlData* controlData) {
     int* numberOfPlanes = &controlData->numberOfPlanes;
     int* capacity = &controlData->capacity;
 
     // calc the length of the Plane ID
-    int length = 0;
-    for (int i = 0; buffer[i] != '\0'; i++) {
-        length += 1;
-    }
+    size_t length = strlen(buffer);
 
     char* plane = malloc(sizeof(char) * length);
     for (int i = 0; i < length + 1; i++) {
@@ -122,7 +100,7 @@ void handle_add(char* buffer, ControlData* controlData) {
     }
 
     if (*numberOfPlanes + 2 > *capacity) {
-        int biggerSize = (*capacity) + 10;
+        int biggerSize = (*capacity) * 1.5;
         char** newPlanes = (char**)realloc(controlData->planes,
                 sizeof(char*) * biggerSize);
         if (newPlanes == 0) {
@@ -131,11 +109,14 @@ void handle_add(char* buffer, ControlData* controlData) {
         *capacity = biggerSize;
         controlData->planes = newPlanes;
     }
+
     controlData->planes[(*numberOfPlanes)++] = plane;
     lexicographic_order(controlData->planes, *numberOfPlanes);
 }
 
-//
+// Getting command from 'buffer', handle with it via info from 'controlData'
+// and write to socket end point with 'writeFile'
+// Return void;
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "log")) {
@@ -156,7 +137,8 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     sem_post(lock);
 }
 
-// 
+// Thread function to handle request from a client with given parameter
+// Return NULL pointer
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
     int connectFile = threadData->connectFile;
@@ -184,24 +166,10 @@ void* handle_request(void* data) {
     return 0;
 }
 
-//
-void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
-    if (!is_valid_port(mapperPort)) {
-        exit(handle_error_message(INVALID_PORT));
-    }
-    // Client job
-    MapperArgs* mapperArgs = malloc(sizeof(mapperArgs));
-    mapperArgs->id = id;
-    mapperArgs->controlPort = number_to_string(controlPort);
-    mapperArgs->mapperPort = mapperPort;
-
-    pthread_t threadId;
-    pthread_create(&threadId, 0, handle_client_job, (void*)mapperArgs);
-    pthread_join(threadId, 0);
-}
-
-//
+// Set up the controlData with the 'info' and accept client connections
+// via the socket fd 'server'. Return void;
 void accept_clients(char* info, int server) {
+    // Set up struct
     ControlData* controlData = malloc(sizeof(ControlData));
     int capacity = 10; // default value, could be extended if overloading
     char** planes = malloc(sizeof(char*) * capacity);
@@ -224,6 +192,49 @@ void accept_clients(char* info, int server) {
     }
 }
 
+// Thread function that does the job of connecting to mapper with given
+// args. Return NULL pointer
+void* connect_mapper(void* data) {
+    MapperArgs* mapperArgs = (MapperArgs*)data;
+    char* id = mapperArgs->id;
+    char* controlPort = mapperArgs->controlPort;
+    char* mapperPort = mapperArgs->mapperPort;
+
+    // set up as client connect to mapperPort
+    int client = set_up_socket(mapperPort, 0);
+    if (!client) { // cannot connect with given port
+        exit(handle_error_message(INVALID_MAPPER));
+    }
+
+    FILE* writeFile = fdopen(client, "w");
+
+    fprintf(writeFile, "!%s:%s\n", id, controlPort);
+    fflush(writeFile);
+
+    // close the connection
+    fclose(writeFile);
+    close(client);
+
+    return 0;
+}
+
+// Send the 'id' and 'controlPort' to the mapper via 'mapperPort'
+// return void;
+void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
+    if (!is_valid_port(mapperPort)) {
+        exit(handle_error_message(INVALID_PORT));
+    }
+    // Client job
+    MapperArgs* mapperArgs = malloc(sizeof(mapperArgs));
+    mapperArgs->id = id;
+    mapperArgs->controlPort = number_to_string(controlPort);
+    mapperArgs->mapperPort = mapperPort;
+
+    pthread_t threadId;
+    pthread_create(&threadId, 0, connect_mapper, (void*)mapperArgs);
+    pthread_join(threadId, 0);
+}
+
 int main(int argc, char** argv) {
     if (argc != 3 && argc != 4) { // only accept 2 args (without mapper)
                                   // or 3 args (argc = 4) (with mapper)
@@ -237,11 +248,12 @@ int main(int argc, char** argv) {
         return handle_error_message(INVALID_CHAR);
     }
 
-    // Server
+    // Set up socket and get the control port to pass to mapper and
+    // fprintf to stdout
     unsigned int controlPort;
     int server = set_up_socket(0, &controlPort);
 
-    if (argv[3]) {
+    if (argv[3]) { // if the mapper port is given
         char* mapperPort = argv[3];
         handle_mapper(mapperPort, id, controlPort);
     }
