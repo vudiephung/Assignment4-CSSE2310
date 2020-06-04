@@ -48,9 +48,7 @@ int find_index_of_id(char* id, Airport** airports, int length) {
 
         if (strcmp(id, airports[mid]->id) > 0) { // id one the half right
             left = mid + 1; // set the right next to the mid
-        }
-
-        else {
+        } else {
             right = mid - 1; 
         }
     } 
@@ -102,7 +100,7 @@ void lexicographic_order(Airport** airports, int length) {
 
 // Add an airport with 'id' and 'port' to the 'mapData'
 // Return void;
-void add_to_list(MapData* mapData, Airport* airport, sem_t* lock) {
+void add_to_list(MapData* mapData, Airport* airport) {
     // if the allocated memory is nearly full
     if (mapData->numberOfAirports + 2 > mapData->capacity) {
         int biggerSize = (mapData->capacity) * 1.5;
@@ -128,9 +126,9 @@ void add_to_list(MapData* mapData, Airport* airport, sem_t* lock) {
     lexicographic_order(mapData->airports, mapData->numberOfAirports);
 }
 
-// From given 'buffer' after emliminated the '!' characterr
-// e.g: 'BNE:123', get id and port from it and add it to the airports
-// from 'mapData'
+// From given 'buffer' after emliminating the '!' characterr
+// e.g: 'BNE:123', get id and port from it and add those to the airports
+// from 'mapData'. Before and after adding, take the 'lock' and release it
 // Then sort the list of airports with lexicographic order
 // return void
 void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
@@ -162,7 +160,7 @@ void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
         airport->port = port;
         // Add to the list
         sem_wait(lock);
-        add_to_list(mapData, airport, lock);
+        add_to_list(mapData, airport);
         sem_post(lock);
     }
 }
@@ -171,7 +169,7 @@ void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
 // to the file pointer 'writeFile'
 // return void; 
 void send_list(MapData* mapData, FILE* writeFile) {
-    int numberOfAirports  = mapData->numberOfAirports;
+    int numberOfAirports = mapData->numberOfAirports;
     Airport** airports = mapData->airports;
     for (int i = 0; i < numberOfAirports; i++) {
         fprintf(writeFile, "%s:%s\n", airports[i]->id, airports[i]->port);
@@ -186,17 +184,17 @@ void send_list(MapData* mapData, FILE* writeFile) {
 void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "@")) {
-        sem_wait(lock);
+        // sem_wait(lock);
         send_list(mapData, writeFile);
-        sem_post(lock);
+        // sem_post(lock);
         return;
     }
 
     switch (buffer[0]) {
         case '?':
-            sem_wait(lock);
+            // sem_wait(lock);
             handle_send(buffer + 1, mapData, writeFile);
-            sem_post(lock);
+            // sem_post(lock);
             break;
         case '!':
             handle_add(buffer + 1, mapData, lock);
@@ -258,12 +256,12 @@ int main(int argc, char** argv) {
 
     pthread_t threadId;
     ThreadData* threadData = malloc(sizeof(ThreadData));
+    threadData->mapData = mapData;
+    threadData->lock = &lock;
 
     int connectFile; // file descriptor from return value of accept()
     while (connectFile = accept(server, 0, 0), connectFile >= 0) {
         threadData->connectFile = connectFile;
-        threadData->mapData = mapData;
-        threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);
     }
 
