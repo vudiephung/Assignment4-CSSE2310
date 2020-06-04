@@ -59,6 +59,7 @@ bool read_line(FILE* file, char* buffer, int* size) {
             buffer[count++] = (char)next;
         }
     }
+
     return next != EOF;
 }
 
