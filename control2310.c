@@ -182,11 +182,11 @@ void accept_clients(char* info, int server) {
 
     sem_t lock;
     sem_init(&lock, 0, 1);
-    pthread_t threadId;
-    ThreadData* threadData = malloc(sizeof(ThreadData));
 
+    pthread_t threadId;
     int connectFile;
     while (connectFile = accept(server, 0, 0), connectFile >= 0) {
+        ThreadData* threadData = malloc(sizeof(ThreadData));
         threadData->connectFile = connectFile;
         threadData->controlData = controlData;
         threadData->lock = &lock;

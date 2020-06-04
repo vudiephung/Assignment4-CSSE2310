@@ -255,13 +255,12 @@ int main(int argc, char** argv) {
     mapData->airports = airports;
 
     pthread_t threadId;
-    ThreadData* threadData = malloc(sizeof(ThreadData));
-    threadData->mapData = mapData;
-    threadData->lock = &lock;
-
     int connectFile; // file descriptor from return value of accept()
     while (connectFile = accept(server, 0, 0), connectFile >= 0) {
+        ThreadData* threadData = malloc(sizeof(threadData));
         threadData->connectFile = connectFile;
+        threadData->mapData = mapData;
+        threadData->lock = &lock;
         pthread_create(&threadId, 0, handle_request, (void*)threadData);
     }
 
