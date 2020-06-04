@@ -87,18 +87,19 @@ void lexicographic_order(char** planes, int length) {
 // From a 'buffer', truncate that string to get the plane id and add it
 // variable 'planes' of 'controlData' then sort that array with 
 // lexicographic order. Return void;
-void handle_add(char* buffer, ControlData* controlData) {
+void handle_add(char* buffer, ControlData* controlData, sem_t* lock) {
     int* numberOfPlanes = &controlData->numberOfPlanes;
     int* capacity = &controlData->capacity;
 
     // calc the length of the Plane ID
-    // size_t length = strlen(buffer);
+    size_t length = strlen(buffer);
 
-    // char* plane = malloc(sizeof(char) * length);
-    // for (int i = 0; i < length + 1; i++) {
-    //     plane[i] = buffer[i];
-    // }
+    char* plane = malloc(sizeof(char) * length);
+    for (int i = 0; i < length + 1; i++) {
+        plane[i] = buffer[i];
+    }
 
+    sem_wait(lock);
     if (*numberOfPlanes + 2 > *capacity) {
         int biggerSize = (*capacity) * 1.5;
         char** newPlanes = (char**)realloc(controlData->planes,
@@ -110,8 +111,9 @@ void handle_add(char* buffer, ControlData* controlData) {
         controlData->planes = newPlanes;
     }
 
-    controlData->planes[(*numberOfPlanes)++] = buffer;
+    controlData->planes[(*numberOfPlanes)++] = plane;
     lexicographic_order(controlData->planes, *numberOfPlanes);
+    sem_post(lock);
 }
 
 // Getting command from 'buffer', handle with it via info from 'controlData'
@@ -120,6 +122,7 @@ void handle_add(char* buffer, ControlData* controlData) {
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "log")) {
+        sem_wait(lock);
         // send list
         for (int i = 0; i < controlData->numberOfPlanes; i++) {
             fprintf(writeFile, "%s\n", controlData->planes[i]);
@@ -127,12 +130,11 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         }
         fprintf(writeFile, ".\n");
         fflush(writeFile);
+        sem_post(lock);
         return;
     }
-    // sem_wait(lock);
-    handle_add(buffer, controlData);
-    // sem_post(lock);
-    // send back info
+
+    handle_add(buffer, controlData, lock);
     fprintf(writeFile, "%s\n", controlData->info);
     fflush(writeFile);
 }

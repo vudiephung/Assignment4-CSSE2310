@@ -103,10 +103,6 @@ void lexicographic_order(Airport** airports, int length) {
 // Add an airport with 'id' and 'port' to the 'mapData'
 // Return void;
 void add_to_list(MapData* mapData, Airport* airport, sem_t* lock) {
-    // sem_wait(lock);
-    // int* numberOfAirports = &mapData->numberOfAirports;
-    // int* capacity = &mapData->capacity;
-
     // if the allocated memory is nearly full
     if (mapData->numberOfAirports + 2 > mapData->capacity) {
         int biggerSize = (mapData->capacity) * 1.5;
@@ -130,8 +126,6 @@ void add_to_list(MapData* mapData, Airport* airport, sem_t* lock) {
 
     // Sort in lexicographic order
     lexicographic_order(mapData->airports, mapData->numberOfAirports);
-
-    // sem_post(lock);
 }
 
 // From given 'buffer' after emliminated the '!' characterr
@@ -149,12 +143,6 @@ void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
             break;
         }
     }
-
-    // char* id = malloc(sizeof(char) * defaultBufferSize);
-    // char* port = malloc(sizeof(char) * defaultBufferSize);
-
-    // strcpy(id, buffer);
-    // strcpy(port, buffer + semicolonPosition + 1);
 
     // Get ID
     int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
