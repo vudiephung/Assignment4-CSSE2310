@@ -84,9 +84,9 @@ void lexicographic_order(char** planes, int length) {
     }
 }
 
-// From a 'buffer', truncate that string to get the plane id and add it
-// variable 'planes' of 'controlData' then sort that array with 
-// lexicographic order. Return void;
+// Add a new plane id getting from the 'buffer' to 'controlData' (including
+// lexicographical sorting). Use the 'lock' to access critical section
+// Return void;
 void handle_add(char* buffer, ControlData* controlData, sem_t* lock) {
     int* numberOfPlanes = &controlData->numberOfPlanes;
     int* capacity = &controlData->capacity;
@@ -118,11 +118,11 @@ void handle_add(char* buffer, ControlData* controlData, sem_t* lock) {
 
 // Getting command from 'buffer', handle with it via info from 'controlData'
 // and write to socket end point with 'writeFile'
+// Pass the 'lock' into its inner function to handle with sentitive data
 // Return void;
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "log")) {
-        sem_wait(lock);
         // send list
         for (int i = 0; i < controlData->numberOfPlanes; i++) {
             fprintf(writeFile, "%s\n", controlData->planes[i]);
@@ -130,7 +130,6 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         }
         fprintf(writeFile, ".\n");
         fflush(writeFile);
-        sem_post(lock);
         return;
     }
 
