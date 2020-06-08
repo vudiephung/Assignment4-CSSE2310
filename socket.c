@@ -59,4 +59,4 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
     }
 
     return socketEndpoint;
-uop}
+}
