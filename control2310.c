@@ -140,9 +140,9 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     fflush(writeFile);
 }
 
-// Thread function to handle request from a client with given parameter
-// 'data' is struct ThreadData that is declared in the accept_clients()
-// function below
+// Thread function read the requests from a client and handle with it.
+// The param 'data' is struct ThreadData that is declared in
+// the accept_clients() function below
 // Return NULL pointer
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
@@ -171,7 +171,8 @@ void* handle_request(void* data) {
     return 0;
 }
 
-// Set up the controlData with the 'info' and accept client connections
+// Set up a struct ControlData with the 'info' 
+// of the control and accept client connections
 // via the socket fd 'server'. Return void;
 void accept_clients(char* info, int server) {
     // Set up struct
@@ -197,8 +198,11 @@ void accept_clients(char* info, int server) {
     }
 }
 
-// Thread function that does the job of connecting to mapper with given
-// args. Return NULL pointer
+// Thread function that does the job of connecting to mapper
+// After connecting successfully, send the id and the port to
+// that mapper and return NULL pointer
+// 'data' is the struct 'MapperArgs' that is initialised by
+// the handle_mapper() function below
 void* connect_mapper(void* data) {
     MapperArgs* mapperArgs = (MapperArgs*)data;
     char* id = mapperArgs->id;
@@ -223,7 +227,9 @@ void* connect_mapper(void* data) {
     return 0;
 }
 
-// Send the 'id' and 'controlPort' to the mapper via 'mapperPort'
+// If the 'mapperPort' is valid, create a thread
+// to handle the job of sending the 'id' and 'controlPort'
+// to that mapper
 // return void;
 void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
     if (!is_valid_port(mapperPort)) {
@@ -241,8 +247,9 @@ void handle_mapper(char* mapperPort, char* id, unsigned int controlPort) {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 3 && argc != 4) { // only accept 2 args (without mapper)
-                                  // or 3 args (argc = 4) (with mapper)
+    // only accept 2 args (argc = 3) (without mapper)
+    // or 3 args (argc = 4) (with mapper)
+    if (argc != 3 && argc != 4) {                    
         return handle_error_message(NUMS_OF_ARGS);
     }
 
@@ -263,6 +270,7 @@ int main(int argc, char** argv) {
         handle_mapper(mapperPort, id, controlPort);
     }
 
+    // Display the port to the screen
     fprintf(stdout, "%u\n", controlPort);
     fflush(stdout);
 
