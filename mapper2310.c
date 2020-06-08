@@ -46,18 +46,19 @@ int find_index_of_id(char* id, Airport** airports, int length) {
             return mid; 
         }
 
-        if (strcmp(id, airports[mid]->id) > 0) { // id one the half right
-            left = mid + 1; // set the right next to the mid
+        if (strcmp(id, airports[mid]->id) > 0) { // 'id' is at the half right
+            left = mid + 1; // set the left next to the mid
         } else {
             right = mid - 1; 
         }
-    } 
+    }
 
+    // Cannot find the 'id'
     return -1; 
 }
 
-// Handle the case when client send ? + 'id' of the airport
-// Get the airports list from 'mapData' then write the result to the
+// Handle the case when client send ? + 'id'
+// Find the airport with 'id' in 'mapData' then write the result to the
 // 'writeFile'.
 // Return void;
 void handle_send(char* id, MapData* mapData, FILE* writeFile) {
@@ -67,6 +68,7 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
         // Search for existing id
         int index = find_index_of_id(id, airports, numberOfAirports);
         if (index != -1) { // index is found
+            // write the port of that airport
             fprintf(writeFile, "%s\n", airports[index]->port);
             fflush(writeFile);
         } else { // index is not found
@@ -77,28 +79,28 @@ void handle_send(char* id, MapData* mapData, FILE* writeFile) {
 }
 
 // Sort the 'airports' with size of 'length' in lexicographic order
-// Return void
+// Return void;
 void lexicographic_order(Airport** airports, int length) {
-    char tempBufferId[defaultBufferSize];
-    char tempPort[defaultBufferSize];
+    char tempId[defaultBufferSize]; // buffer to store id temporarily
+    char tempPort[defaultBufferSize]; // buffer to store port temporarily
     for (int i = 0; i < length; i++) {
         for (int j = i + 1; j < length; j++) {
             //swapping strings if they are not in the lexicographical order
             if (strcmp((airports[i]->id), (airports[j]->id)) > 0) {
-                strcpy(tempBufferId, (airports[i]->id));
+                strcpy(tempId, (airports[i]->id));
                 strcpy(tempPort, (airports[i]->port));
 
                 strcpy((airports[i]->id), (airports[j]->id));
                 strcpy((airports[i]->port), (airports[j]->port));
 
-                strcpy((airports[j]->id), tempBufferId);
+                strcpy((airports[j]->id), tempId);
                 strcpy((airports[j]->port), tempPort);
             }
         }
     }
 }
 
-// Add an airport with 'id' and 'port' to the 'mapData'
+// Add an 'airport' with id and port to the 'mapData'
 // Return void;
 void add_to_list(MapData* mapData, Airport* airport) {
     // if the allocated memory is nearly full
@@ -107,7 +109,7 @@ void add_to_list(MapData* mapData, Airport* airport) {
         // Reallocate memory with bigger size
         Airport** newAirports = (Airport**)realloc(mapData->airports,
                 sizeof(Airport*) * biggerSize);
-        if (newAirports == 0) { // Cannot be allocated
+        if (newAirports == 0) { // Cannot be reallocated
             return;
         }
         // Update the value of 'capacity' and and the 'airports'
@@ -115,7 +117,7 @@ void add_to_list(MapData* mapData, Airport* airport) {
         mapData->airports = newAirports;
     }
 
-    // cannot find the existing index
+    // cannot find the existing id
     if (find_index_of_id(airport->id, mapData->airports,
             mapData->numberOfAirports) == -1) {
         // append that airport to the array
@@ -128,27 +130,26 @@ void add_to_list(MapData* mapData, Airport* airport) {
 
 // From given 'buffer' after emliminating the '!' characterr
 // e.g: 'BNE:123', get id and port from it and add those to the airports
-// from 'mapData'. Before and after adding, take the 'lock' and release it
-// Then sort the list of airports with lexicographic order
+// of 'mapData'. Use the 'lock' to limit access to critical section.
 // return void
 void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
-    int semicolonPosition;
-
+    int colonPosition;
+    // Find the position of colon and replace it with '\0'
     for (int i = 0; i < strlen(buffer); i++) {
         if (buffer[i] == ':') {
-            semicolonPosition = i;
+            colonPosition = i;
             buffer[i] = '\0';
             break;
         }
     }
 
     // Get ID
-    int lengthOfId = semicolonPosition + 1; // 1 more space for '\0'
+    int lengthOfId = colonPosition + 1; // 1 more space for '\0'
     char* id = malloc(sizeof(char) * lengthOfId);
     memcpy(id, buffer, lengthOfId);
 
     // Get port
-    buffer = buffer + semicolonPosition + 1;
+    buffer = buffer + colonPosition + 1;
     size_t lengthOfPort = strlen(buffer) + 1;
     char* port = malloc(sizeof(char) * lengthOfPort);
     memcpy(port, buffer, lengthOfPort);
@@ -165,9 +166,10 @@ void handle_add(char* buffer, MapData* mapData, sem_t* lock) {
     }
 }
 
-// Send the list (get from 'mapData') of the airports with its id and port
+// Handle the case when client send @
+// Send the list of ids and ports of the airports (get from 'mapData')
 // to the file pointer 'writeFile'
-// return void; 
+// return void;
 void send_list(MapData* mapData, FILE* writeFile) {
     int numberOfAirports = mapData->numberOfAirports;
     Airport** airports = mapData->airports;
@@ -179,22 +181,19 @@ void send_list(MapData* mapData, FILE* writeFile) {
 
 // With the string get from socket endpoint 'buffer' (e.g: !add:123)
 // Handle the command relates to that string and return void;
-// Args: 'mapData', 'writeFile' and 'lock' is passed down to its
-// inner function
+// with the data get from 'mapData'. After process the command,
+// send the corresponding output to 'writeFile' and use the 'lock'
+// to minimize the access to sensitive data.
 void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "@")) {
-        // sem_wait(lock);
         send_list(mapData, writeFile);
-        // sem_post(lock);
         return;
     }
 
     switch (buffer[0]) {
         case '?':
-            // sem_wait(lock);
             handle_send(buffer + 1, mapData, writeFile);
-            // sem_post(lock);
             break;
         case '!':
             handle_add(buffer + 1, mapData, lock);
@@ -206,9 +205,13 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
 
 // When a client is accept() by the server, create a new thread, 
 // each thread will run this function to continuously get the input and
-// handle it until reading eof from the other end point.
+// handle with it. If reading EOF from the other endpoint,
+// clean up and return NULL pointer;
+// arg: 'threadData' includes the struct ThreadData which contains
+// the variables to handle a command
 void* handle_request(void* threadData) {
     ThreadData* myThreadData = (ThreadData*)threadData;
+    // socket endpoint file descriptor
     int connectFile = myThreadData->connectFile;
     MapData* mapData = myThreadData->mapData;
     sem_t* lock = myThreadData->lock;
@@ -237,7 +240,7 @@ void* handle_request(void* threadData) {
 int main(int argc, char** argv) {
     unsigned int mapperPort;
 
-    // Set up socket and get the 'mapperPort' to display to stdout
+    // Set up the socket and get the 'mapperPort' to display to stdout
     int server = set_up_socket(0, &mapperPort);
 
     fprintf(stdout, "%u\n", mapperPort);

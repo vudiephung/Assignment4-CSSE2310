@@ -22,7 +22,7 @@ typedef struct {
 
 // Essential information of a control
 typedef struct {
-    char* info; // info ofthe control
+    char* info; // info of the control
     int capacity; // Capacity of 'planes' array, could be extended
     int numberOfPlanes;
     char** planes;

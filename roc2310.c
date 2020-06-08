@@ -55,29 +55,30 @@ Error handle_error_message(Error type) {
     return type;
 }
 
-// Save all the destinations (with count =  'numOfDestinations') get from
-// 'argv' to the 'rocData'
+// Save 'numOfDestinations' and all the destinations getting from the
+// 'argv' to the 'rocData', beginning with argv['minimumAgrc'] which is
+// argv[3]
 // return void;
-void set_up(RocData* rocData, int numOfDestinations, char** argv) {
-    // Setup struct
-    char** destinations = malloc(sizeof(char*) * numOfDestinations);
+void initialize_roc(RocData* rocData, int numOfDestinations,
+        int minimumAgrc, char** argv) {
     rocData->numOfDestinations = numOfDestinations;
+    // Allocate memory for destinations and save it to rocData
+    char** destinations = malloc(sizeof(char*) * numOfDestinations);
     rocData->destinations = destinations;
 
     // copy argvs into array
     for (int i = 0; i < numOfDestinations; i++) {
-        // size_t length = strlen(argv[i + 3]) + 1;
         rocData->destinations[i] =
                 malloc(sizeof(char) * defaultBufferSize);
-        strcpy(rocData->destinations[i], argv[i + 3]);
+        strcpy(rocData->destinations[i], argv[i + minimumAgrc]);
     }
 }
 
-// Send request(s) 'mapperPort' (if its port is given) to ensure that
+// Send request(s) to the 'mapperPort' (if its port is given) to ensure that
 // all of the destinations provide valid port
 // then save all of the converted destination port
 // to the 'destinations' variable of 'rocData'.
-// If the mapperPort is not provided, check for error and return with
+// If the mapperPort is not provided, checking for error and return with
 // coresponding exit code.
 // return void if no error
 void handle_ports(RocData* rocData, char* mapperPort) {
@@ -97,7 +98,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
         for (int i = 0; i < numOfDestinations; i++) {
             char* destination = rocData->destinations[i];
             if (!is_valid_port(destination)) { // invalid destination port
-                // Send to mapper to get the valid port
+                // Send that invalid port to mapper to get the valid one
                 fprintf(writeFile, "?%s\n", destination);
                 fflush(writeFile);
                 char* buffer = malloc(sizeof(char) * defaultBufferSize);
@@ -105,7 +106,7 @@ void handle_ports(RocData* rocData, char* mapperPort) {
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
 
-                if (!strcmp(buffer, ";")) {
+                if (!strcmp(buffer, ";")) { // there is no corresponding port
                     exit(handle_error_message(MAPPER_ENTRY));
                 }
                 // copy the result given from mapper to the destinations
@@ -145,7 +146,7 @@ void connect_ports(RocData* rocData, char* planeId) {
         char* destinationPort = rocData->destinations[i];
         // printf("%s\n", destinationPort);
         int client = set_up_socket(destinationPort, NULL);
-        if (!client) {
+        if (!client) { // cannot connect to at least 1 destination
             connectionError = true;
             continue;
         }
@@ -170,17 +171,19 @@ void connect_ports(RocData* rocData, char* planeId) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
+    const int minimumAgrc = 3; // including argv[0], plane id and mapperPort
+
+    if (argc < minimumAgrc) {
         return handle_error_message(NUMS_OF_ARGS);
     }
 
     // Get args
     char* planeId = argv[1];
     char* mapperPort = argv[2];
-    int numOfDestinations = argc - 3;
+    int numOfDestinations = argc - minimumAgrc;
 
     RocData* rocData = malloc(sizeof(RocData));
-    set_up(rocData, numOfDestinations, argv);
+    initialize_roc(rocData, numOfDestinations, minimumAgrc, argv);
 
     // Handle list of ports
     handle_ports(rocData, mapperPort);
