@@ -33,14 +33,12 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
 
     // create a socket and bind it to a port
     int socketEndpoint = socket(AF_INET, SOCK_STREAM, 0);
-
     if (!port) { // server
         if (bind(socketEndpoint, (struct sockaddr*)addressInfo->ai_addr,
                 sizeof(struct sockaddr))) {
             perror("Binding");
             exit(undefinedErrorCode);
         }
-        // allow up to 10 connection requests to queue
         if (listen(socketEndpoint, 10)) {
             perror("Listen");
             exit(undefinedErrorCode);
@@ -61,4 +59,4 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
     }
 
     return socketEndpoint;
-}
+uop}

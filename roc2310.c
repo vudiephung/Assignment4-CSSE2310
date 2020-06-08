@@ -156,11 +156,12 @@ void connect_ports(RocData* rocData, char* planeId) {
         FILE* writeFile = fdopen(client, "w");
         FILE* readFile = fdopen(client2, "r");
 
-        fprintf(writeFile, "%s\n", planeId);
+        fprintf(writeFile, "%s\n", planeId); // write plane id to the control
         fflush(writeFile);
 
         char* message = malloc(sizeof(char) * defaultBufferSize);
         read_line(readFile, message, &defaultBufferSize);
+        // display the message getting from the control
         fprintf(stdout, "%s\n", message);
         fflush(stdout);
 
@@ -168,7 +169,7 @@ void connect_ports(RocData* rocData, char* planeId) {
         close(client2);
     }
 
-    if (connectionError) {
+    if (connectionError) { // cannot connect to at least 1 location
         exit(handle_error_message(CONNECTION));
     }
 }

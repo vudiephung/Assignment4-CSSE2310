@@ -123,7 +123,7 @@ void handle_add(char* buffer, ControlData* controlData, sem_t* lock) {
 void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
         sem_t* lock) {
     if (!strcmp(buffer, "log")) {
-        // send list
+        // send the list planes
         for (int i = 0; i < controlData->numberOfPlanes; i++) {
             fprintf(writeFile, "%s\n", controlData->planes[i]);
             fflush(writeFile);
@@ -134,11 +134,15 @@ void handle_command(char* buffer, ControlData* controlData, FILE* writeFile,
     }
 
     handle_add(buffer, controlData, lock);
+
+    // After a plane is added, send the info to it
     fprintf(writeFile, "%s\n", controlData->info);
     fflush(writeFile);
 }
 
 // Thread function to handle request from a client with given parameter
+// 'data' is struct ThreadData that is declared in the accept_clients()
+// function below
 // Return NULL pointer
 void* handle_request(void* data) {
     ThreadData* threadData = (ThreadData*)data;
@@ -172,7 +176,7 @@ void* handle_request(void* data) {
 void accept_clients(char* info, int server) {
     // Set up struct
     ControlData* controlData = malloc(sizeof(ControlData));
-    int capacity = 10; // default value, could be extended if overloading
+    int capacity = 10; // default value, could be extended if overl1423-oading
     char** planes = malloc(sizeof(char*) * capacity);
     controlData->info = info;
     controlData->capacity = capacity;
