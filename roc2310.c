@@ -144,18 +144,21 @@ void connect_ports(RocData* rocData, char* planeId) {
     for (int i = 0; i < numOfDestinations; i++) {
         // Connect to each port
         char* destinationPort = rocData->destinations[i];
-        // printf("%s\n", destinationPort);
-        int client = set_up_socket(destinationPort, NULL);
+
+        int client = set_up_socket(destinationPort, NULL); // for write
+        int client2 = dup(client); // for read
+
         if (!client) { // cannot connect to at least 1 destination
             connectionError = true;
             continue;
         }
-        int client2 = dup(client);
+
         FILE* writeFile = fdopen(client, "w");
         FILE* readFile = fdopen(client2, "r");
 
         fprintf(writeFile, "%s\n", planeId);
         fflush(writeFile);
+
         char* message = malloc(sizeof(char) * defaultBufferSize);
         read_line(readFile, message, &defaultBufferSize);
         fprintf(stdout, "%s\n", message);
