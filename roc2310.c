@@ -56,8 +56,7 @@ Error handle_error_message(Error type) {
 }
 
 // Save 'numOfDestinations' and all the destinations getting from the
-// 'argv' to the 'rocData', beginning with argv['minimumAgrc'] which is
-// argv[3]
+// 'argv' to the 'rocData', beginning with argv['minimumAgrc']
 // return void;
 void initialize_roc(RocData* rocData, int numOfDestinations,
         int minimumAgrc, char** argv) {

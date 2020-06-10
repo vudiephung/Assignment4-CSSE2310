@@ -5,15 +5,15 @@
 #include "socket.h"
 
 // Error code to return when cannot set up network connection
-// via function getaddrinfo, bind(), listen(), getsockname()
+// via function getaddrinfo(), bind(), listen(), getsockname()
 const int undefinedErrorCode = 10;
 
-// Set up socket endpoints
-// Args: Given the 'port' that you want to conenct to
-// After the socket is set up, deference the value from ntohs(ad.sin_port)
-// to 'portNumber'
-// In this assignment, if client, 'port' != 0, 'portNumer' == 0
-// If server, then 'port' = 0, 'portNumber' == 0
+// Set up socket endpoints and then bind
+// (if server) or connect (if client) with it
+// Args: Given the 'port' to get the address info,
+// 'portNumber' is dereferenced to reuse
+// In this assignment, if client, then 'port' != NULL, 'portNumer' == NULL
+// If server, then set 'port' = NULL, 'portNumber' != NULL
 // return file descriptor of socket endpoint
 int set_up_socket(const char* port, unsigned int* portNumber) {
     struct addrinfo* addressInfo = 0;
@@ -21,9 +21,11 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_INET; // IPv4  for generic could use AF_UNSPEC
     hints.ai_socktype = SOCK_STREAM;
-    if (!port) {
+
+    if (!port) { // Server
         hints.ai_flags = AI_PASSIVE;
     }
+
     int err;
     if ((err = getaddrinfo("localhost", port, &hints, &addressInfo))) {
         freeaddrinfo(addressInfo);
@@ -31,25 +33,30 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
         exit(undefinedErrorCode);
     }
 
-    // create a socket and bind it to a port
+    // create a socket and bind it to a port (if server)
+    // or connect with it (if client)
     int socketEndpoint = socket(AF_INET, SOCK_STREAM, 0);
+
     if (!port) { // server
         if (bind(socketEndpoint, (struct sockaddr*)addressInfo->ai_addr,
                 sizeof(struct sockaddr))) {
             perror("Binding");
             exit(undefinedErrorCode);
         }
-        if (listen(socketEndpoint, 10)) {
+        int maxQueuePending = 10;
+        if (listen(socketEndpoint, maxQueuePending)) {
             perror("Listen");
             exit(undefinedErrorCode);
         }
-        struct sockaddr_in ad;
-        memset(&ad, 0, sizeof(struct sockaddr_in));
-        socklen_t len = sizeof(struct sockaddr_in);
-        if (getsockname(socketEndpoint, (struct sockaddr*)&ad, &len)) {
+
+        struct sockaddr_in socketAddress;
+        memset(&socketAddress, 0, sizeof(struct sockaddr_in));
+        socklen_t length = sizeof(struct sockaddr_in);
+        if (getsockname(socketEndpoint, (struct sockaddr*)&socketAddress,
+                &length)) {
             exit(undefinedErrorCode);
         }
-        *portNumber = ntohs(ad.sin_port);
+        *portNumber = ntohs(socketAddress.sin_port);
     } else { // client
         if (connect(socketEndpoint, (struct sockaddr*)addressInfo->ai_addr,
                 sizeof(struct sockaddr))) {

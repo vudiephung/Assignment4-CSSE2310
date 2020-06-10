@@ -203,8 +203,7 @@ void handle_command(char* buffer, MapData* mapData, FILE* writeFile,
     }
 }
 
-// When a client is accept() by the server, create a new thread, 
-// each thread will run this function to continuously get the input and
+// Thread function to continuously get the input and
 // handle with it. If reading EOF from the other endpoint,
 // clean up and return NULL pointer;
 // arg: 'threadData' includes the struct ThreadData which contains
@@ -242,14 +241,14 @@ int main(int argc, char** argv) {
 
     // Set up the socket and get the 'mapperPort' to display to stdout
     int server = set_up_socket(0, &mapperPort);
-
     fprintf(stdout, "%u\n", mapperPort);
     fflush(stdout);
 
+    // Init lock
     sem_t lock;
     sem_init(&lock, 0, 1);
 
-    // Set up Struct
+    // Initialise struct mapData
     int capacity = 10;
     MapData* mapData = malloc(sizeof(MapData));
     Airport** airports = malloc(sizeof(Airport*) * capacity);

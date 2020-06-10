@@ -171,7 +171,7 @@ void* handle_request(void* data) {
     return 0;
 }
 
-// Set up a struct ControlData with the 'info' 
+// Initialize a struct with the 'info' 
 // of the control and accept client connections
 // via the socket fd 'server'. Return void;
 void accept_clients(char* info, int server) {
@@ -199,6 +199,7 @@ void accept_clients(char* info, int server) {
 }
 
 // Thread function that does the job of connecting to mapper
+// with given param 'data'
 // After connecting successfully, send the id and the port to
 // that mapper and return NULL pointer
 // 'data' is the struct 'MapperArgs' that is initialised by
