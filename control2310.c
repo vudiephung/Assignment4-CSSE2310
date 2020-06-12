@@ -177,7 +177,7 @@ void* handle_request(void* data) {
 void accept_clients(char* info, int server) {
     // Set up struct
     ControlData* controlData = malloc(sizeof(ControlData));
-    int capacity = 10; // default value, could be extended if overl1423-oading
+    int capacity = 10; // default value, could be extended if overloading
     char** planes = malloc(sizeof(char*) * capacity);
     controlData->info = info;
     controlData->capacity = capacity;
@@ -185,7 +185,7 @@ void accept_clients(char* info, int server) {
     controlData->planes = planes;
 
     sem_t lock;
-    sem_init(&lock, 0, 1);
+    sem_init(&lock, 0, 1); // shared, at most 1 thread holds the lock
 
     pthread_t threadId;
     int connectFile;

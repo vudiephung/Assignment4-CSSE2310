@@ -23,7 +23,7 @@ bool is_valid_text(char* text) {
 // return true if the 'port' contains only number and its value from 1
 // to 65535
 bool is_valid_port(char* port) {
-    const int maxPortValue = 65535;
+    const int maxPortValue = 65536;
 
     int portNumber;
 

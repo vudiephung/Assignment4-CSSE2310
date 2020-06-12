@@ -246,10 +246,10 @@ int main(int argc, char** argv) {
 
     // Init lock
     sem_t lock;
-    sem_init(&lock, 0, 1);
+    sem_init(&lock, 0, 1); // shared, at most 1 thread holds the lock
 
     // Initialise struct mapData
-    int capacity = 10;
+    int capacity = 10; // default value, could be extended
     MapData* mapData = malloc(sizeof(MapData));
     Airport** airports = malloc(sizeof(Airport*) * capacity);
     mapData->capacity = capacity;

@@ -26,10 +26,10 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
         hints.ai_flags = AI_PASSIVE;
     }
 
-    int err;
-    if ((err = getaddrinfo("localhost", port, &hints, &addressInfo))) {
+    int error;
+    if ((error = getaddrinfo("localhost", port, &hints, &addressInfo))) {
         freeaddrinfo(addressInfo);
-        fprintf(stderr, "%s\n", gai_strerror(err));
+        fprintf(stderr, "%s\n", gai_strerror(error));
         exit(undefinedErrorCode);
     }
 
@@ -43,7 +43,7 @@ int set_up_socket(const char* port, unsigned int* portNumber) {
             perror("Binding");
             exit(undefinedErrorCode);
         }
-        int maxQueuePending = 10;
+        int maxQueuePending = 128; //maximum pending connections in queue
         if (listen(socketEndpoint, maxQueuePending)) {
             perror("Listen");
             exit(undefinedErrorCode);
